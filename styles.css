@@ -52,7 +52,7 @@
     z-index: 1;
     max-width: 680px;
     margin: 0 auto;
-    padding: 20px 20px 80px;
+    padding: 20px;
   }
 
   /* ── Header ── */
@@ -232,10 +232,41 @@
     padding: 14px 20px;
   }
 
-  .btn-reset-day {
+  .btn-link {
+    display: inline;
     width: auto;
-    padding: 8px 14px;
-    font-size: 12px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-dim);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .btn-link:hover {
+    color: var(--text-muted);
+  }
+
+  .btn-link.btn-link-armed {
+    color: var(--protein);
+    font-weight: 600;
+  }
+
+  .btn-link.btn-link-armed:hover {
+    color: var(--protein);
+  }
+
+  #today-content .today-reset-wrap:not([hidden]) {
+    display: flex;
+    justify-content: center;
+    margin-top: 28px;
+    padding-bottom: 8px;
   }
 
   /* ── Calorie Target Display ── */
@@ -561,6 +592,10 @@
     width: auto;
   }
 
+  #section-log.active {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+
   .meal-total-summary {
     margin-top: 16px;
     padding: 12px 14px;
@@ -651,6 +686,13 @@
   }
 
   .empty-state .icon { font-size: 32px; margin-bottom: 10px; }
+
+  .empty-state-cta {
+    width: auto;
+    display: inline-block;
+    margin-top: 16px;
+    padding: 12px 24px;
+  }
 
   /* ── Info callout ── */
   .info-callout {

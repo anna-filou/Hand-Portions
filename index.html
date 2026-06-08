@@ -455,7 +455,6 @@
           <div class="date-today" id="today-date-str"></div>
           <div class="date-str" id="today-day-str"></div>
         </div>
-        <button class="btn btn-ghost btn-reset-day" data-action="reset-day">Reset day</button>
       </div>
 
       <div class="progress-wrap">
@@ -488,7 +487,11 @@
           <div class="empty-state">
             <div class="icon">🍽</div>
             <div>No meals logged yet today.</div>
+            <button type="button" class="btn btn-primary empty-state-cta" data-tab="log">Log meal</button>
           </div>
+        </div>
+        <div class="today-reset-wrap" id="today-reset-wrap" hidden>
+          <button type="button" class="btn-link" id="delete-all-meals-btn" data-action="reset-day">Delete all meals</button>
         </div>
       </div>
     </div>

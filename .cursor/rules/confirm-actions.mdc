@@ -1,0 +1,54 @@
+---
+description: Two-tap confirm pattern for destructive actions in Handful
+globs: app.js,index.html,styles.css
+alwaysApply: false
+---
+
+# Two-tap confirm actions
+
+Destructive or irreversible actions use a **tap once to arm, tap again to confirm** pattern. Do not use `window.confirm()`.
+
+## Required pieces (per action)
+
+1. **Labels** — normal label constant + confirm label (usually `'Are you sure?'`; import uses `'Confirm import?'`).
+2. **Armed flag** — e.g. `let deleteAllMealsArmed = false`.
+3. **`disarm…()`** — reset flag, restore button text, remove armed CSS class, clear any pending payload/status.
+4. **`handle…()`** — first tap arms; second tap calls `perform…()`.
+5. **`perform…()`** — call `disarm…()` first, then run the destructive work.
+6. **Stable button `id`** — used by disarm logic and `ARMED_CONFIRM_CONTROLS`.
+7. **`data-action`** on the button wired in `runAction`.
+
+## Register every confirm control
+
+Add an entry to `ARMED_CONFIRM_CONTROLS` in `app.js`:
+
+```javascript
+{
+  isArmed: function() { return myActionArmed; },
+  disarm: disarmMyAction,
+  buttonId: 'my-action-btn',
+  insideSelectors: ['#optional-related-ui'] // optional; keeps armed while interacting with helper text
+}
+```
+
+`disarmArmedConfirmsOnClickOutside()` runs at the start of `handleAppClick` and disarms any armed control when the click is **outside** its button (and optional `insideSelectors`).
+
+## When to disarm (without confirming)
+
+- Click/tap outside the control (`handleAppClick` → `disarmArmedConfirmsOnClickOutside`)
+- Leave the relevant tab (`switchTab`: setup actions when `tab !== 'setup'`, delete meals when `tab !== 'today'`)
+- Close the setup accordion panel (`setSetupPanelOpen` for backup/danger)
+- After successful `perform…()`, on validation errors, or when the control is hidden (e.g. no meals left)
+
+## Armed styling
+
+- Setup ghost buttons: add/remove `setup-reset-btn-armed` (red text/border in `styles.css`).
+- Today delete link: add/remove `btn-link-armed`.
+
+## Current controls
+
+| Action | Button id | Confirm label |
+|--------|-----------|---------------|
+| Delete all meals (Today) | `delete-all-meals-btn` | Are you sure? |
+| Reset everything (Settings) | `reset-everything-btn` | Are you sure? |
+| Import backup (Settings) | `import-backup-btn` | Confirm import? |

@@ -247,6 +247,7 @@ function switchTab(tab) {
     disarmResetEverything();
     disarmImportBackup();
   }
+  if (tab !== 'today') disarmDeleteAllMeals();
 
   if (tab === 'today') renderToday();
   if (tab === 'history') renderHistory();
@@ -264,6 +265,8 @@ function refreshDayViews() {
 }
 
 function handleAppClick(event) {
+  disarmArmedConfirmsOnClickOutside(event);
+
   const tabButton = event.target.closest('[data-tab]');
   if (tabButton) {
     switchTab(tabButton.dataset.tab);
@@ -360,7 +363,7 @@ function runAction(action) {
     'quick-add-soda': quickAddSoda,
     'log-meal': logMeal,
     'reset-counts': resetCounts,
-    'reset-day': resetDay,
+    'reset-day': handleResetDay,
     'reset-everything': handleResetEverything,
     'export-backup': exportBackup,
     'import-backup': handleImportBackup,
@@ -1072,8 +1075,13 @@ function renderMealList(container, meals, options) {
   container.innerHTML = '';
 
   if (meals.length === 0) {
-    container.innerHTML =
-      '<div class="empty-state"><div class="icon">🍽</div><div>' + emptyMessage + '</div></div>';
+    let html =
+      '<div class="empty-state"><div class="icon">🍽</div><div>' + emptyMessage + '</div>';
+    if (options && options.logMealTab) {
+      html += '<button type="button" class="btn btn-primary empty-state-cta" data-tab="log">Log meal</button>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
     return;
   }
 
@@ -1193,8 +1201,19 @@ function renderToday() {
   renderPortionCards(document.getElementById('portion-targets'), totals, goals);
   renderMealList(document.getElementById('meal-list'), todayMeals, {
     deletable: true,
-    emptyMessage: 'No meals logged yet today.'
+    emptyMessage: 'No meals logged yet today.',
+    logMealTab: true
   });
+
+  const resetWrap = document.getElementById('today-reset-wrap');
+  if (resetWrap) {
+    if (todayMeals.length === 0) {
+      disarmDeleteAllMeals();
+      resetWrap.hidden = true;
+    } else {
+      resetWrap.hidden = false;
+    }
+  }
 }
 
 function toggleHistoryDay(dayStr) {
@@ -1292,7 +1311,33 @@ function deleteMeal(index) {
   refreshDayViews();
 }
 
-function resetDay() {
+const DELETE_ALL_MEALS_LABEL = 'Delete all meals';
+const DELETE_ALL_MEALS_CONFIRM_LABEL = 'Are you sure?';
+let deleteAllMealsArmed = false;
+
+function disarmDeleteAllMeals() {
+  deleteAllMealsArmed = false;
+  const btn = document.getElementById('delete-all-meals-btn');
+  if (!btn) return;
+  btn.textContent = DELETE_ALL_MEALS_LABEL;
+  btn.classList.remove('btn-link-armed');
+}
+
+function handleResetDay() {
+  if (!deleteAllMealsArmed) {
+    deleteAllMealsArmed = true;
+    const btn = document.getElementById('delete-all-meals-btn');
+    if (btn) {
+      btn.textContent = DELETE_ALL_MEALS_CONFIRM_LABEL;
+      btn.classList.add('btn-link-armed');
+    }
+    return;
+  }
+  performResetDay();
+}
+
+function performResetDay() {
+  disarmDeleteAllMeals();
   const todayStr = new Date().toDateString();
   state.meals = state.meals.filter(m => new Date(m.timestamp).toDateString() !== todayStr);
   saveState();
@@ -1401,6 +1446,41 @@ function disarmImportBackup() {
     btn.classList.remove('setup-reset-btn-armed');
   }
   setImportBackupStatus('');
+}
+
+const ARMED_CONFIRM_CONTROLS = [
+  {
+    isArmed: function() { return deleteAllMealsArmed; },
+    disarm: disarmDeleteAllMeals,
+    buttonId: 'delete-all-meals-btn'
+  },
+  {
+    isArmed: function() { return resetEverythingArmed; },
+    disarm: disarmResetEverything,
+    buttonId: 'reset-everything-btn'
+  },
+  {
+    isArmed: function() { return importBackupArmed; },
+    disarm: disarmImportBackup,
+    buttonId: 'import-backup-btn',
+    insideSelectors: ['#import-backup-status']
+  }
+];
+
+function isClickInsideArmedConfirm(event, control) {
+  if (event.target.closest('#' + control.buttonId)) return true;
+  if (!control.insideSelectors) return false;
+  return control.insideSelectors.some(function(selector) {
+    return event.target.closest(selector);
+  });
+}
+
+function disarmArmedConfirmsOnClickOutside(event) {
+  ARMED_CONFIRM_CONTROLS.forEach(function(control) {
+    if (control.isArmed() && !isClickInsideArmedConfirm(event, control)) {
+      control.disarm();
+    }
+  });
 }
 
 function exportBackup() {
