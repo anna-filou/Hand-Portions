@@ -49,6 +49,6 @@ Add an entry to `ARMED_CONFIRM_CONTROLS` in `app.js`:
 
 | Action | Button id | Confirm label |
 |--------|-----------|---------------|
-| Delete all meals (Today) | `delete-all-meals-btn` | Are you sure? |
+| Clear all (Today) | `delete-all-meals-btn` | Are you sure? |
 | Reset everything (Settings) | `reset-everything-btn` | Are you sure? |
 | Import backup (Settings) | `import-backup-btn` | Confirm import? |
