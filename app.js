@@ -511,9 +511,9 @@ function renderToday() {
   // Portion targets
   var goals = calcGoalPortions(state.weight || 70, state.goalMult, state.target, state.handSize);
   const rows = [
-    { key: 'protein', icon: '🥩', label: 'Protein', sub: 'palms',  logged: portionP,  target: goals.protein },
+    { key: 'protein', icon: '🥩', label: 'Protein', sub: 'palms', logged: portionP, target: goals.protein },
     { key: 'veggie', icon: '🥦', label: 'Veggies', sub: 'fists',  logged: portionV,  target: goals.veggie },
-    { key: 'carb', icon: '🌾', label: 'Carbs',   sub: 'handfuls',logged: portionC, target: goals.carb },
+    { key: 'carb', icon: '🌾', label: 'Carbs', sub: 'handfuls', logged: portionC, target: goals.carb },
     { key: 'fat', icon: '🥑', label: 'Fats',    sub: 'thumbs', logged: portionFt, target: goals.fat },
   ];
   const ptContainer = document.getElementById('portion-targets');
@@ -523,12 +523,11 @@ function renderToday() {
     var over = r.logged > r.target;
     var cls  = over ? 'over' : (met ? 'met' : '');
     var div = document.createElement('div');
-    div.className = 'pt-row';
+    div.className = 'pt-card';
     div.innerHTML =
       '<div class="pt-icon">' + r.icon + '</div>' +
-      '<div class="pt-label"><strong>' + r.label + '</strong>' + r.logged + ' / ' + r.target + ' ' + r.sub + '</div>' +
-      '<div class="pt-count ' + r.key + ' ' + cls + '">' + r.logged + '</div>' +
-      '<div class="pt-target">/ ' + r.target + '</div>';
+      '<div class="pt-label">' + r.label + '</div>' +
+      '<div class="pt-portions ' + r.key + ' ' + cls + '">' + r.logged + '/' + r.target + ' ' + r.sub + '</div>';
     ptContainer.appendChild(div);
   });
 
