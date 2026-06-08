@@ -45,70 +45,82 @@
       </div>
       <div class="portion-grid budget-grid">
         <div class="portion-row portion-row-protein">
-          <div class="portion-head">
-            <div class="portion-icon">🥩</div>
-            <div class="portion-info">
-              <div class="portion-name">Protein</div>
-              <div class="portion-desc">Palm-sized — meat, fish, eggs, legumes</div>
+          <div class="portion-icon">🥩</div>
+          <div class="portion-body">
+            <div class="portion-top">
+              <div class="portion-title-row">
+                <div class="portion-name">Protein</div>
+                <div class="portion-size">Palm</div>
+              </div>
+              <div class="portion-controls">
+                <button class="count-btn" data-budget-type="protein" data-budget-delta="-1">−</button>
+                <div class="count-display" id="budget-count-protein">0</div>
+                <button class="count-btn" data-budget-type="protein" data-budget-delta="1">+</button>
+              </div>
             </div>
-          </div>
-          <div class="portion-foot">
-            <div class="portion-kcal" id="budget-kcal-protein">0 kcal</div>
-            <div class="portion-controls">
-              <button class="count-btn" data-budget-type="protein" data-budget-delta="-1">−</button>
-              <div class="count-display" id="budget-count-protein">0</div>
-              <button class="count-btn" data-budget-type="protein" data-budget-delta="1">+</button>
+            <div class="portion-bottom">
+              <div class="portion-desc">meat, fish, eggs, legumes</div>
+              <div class="portion-kcal" id="budget-kcal-protein">0 kcal</div>
             </div>
           </div>
         </div>
         <div class="portion-row portion-row-veggie">
-          <div class="portion-head">
-            <div class="portion-icon">🥦</div>
-            <div class="portion-info">
-              <div class="portion-name">Vegetables</div>
-              <div class="portion-desc">Fist-sized — non-starchy veg</div>
+          <div class="portion-icon">🥦</div>
+          <div class="portion-body">
+            <div class="portion-top">
+              <div class="portion-title-row">
+                <div class="portion-name">Vegetables</div>
+                <div class="portion-size">Fist</div>
+              </div>
+              <div class="portion-controls">
+                <button class="count-btn" data-budget-type="veggie" data-budget-delta="-1">−</button>
+                <div class="count-display" id="budget-count-veggie">0</div>
+                <button class="count-btn" data-budget-type="veggie" data-budget-delta="1">+</button>
+              </div>
             </div>
-          </div>
-          <div class="portion-foot">
-            <div class="portion-kcal" id="budget-kcal-veggie">0 kcal</div>
-            <div class="portion-controls">
-              <button class="count-btn" data-budget-type="veggie" data-budget-delta="-1">−</button>
-              <div class="count-display" id="budget-count-veggie">0</div>
-              <button class="count-btn" data-budget-type="veggie" data-budget-delta="1">+</button>
+            <div class="portion-bottom">
+              <div class="portion-desc">non-starchy veg</div>
+              <div class="portion-kcal" id="budget-kcal-veggie">0 kcal</div>
             </div>
           </div>
         </div>
         <div class="portion-row portion-row-carb">
-          <div class="portion-head">
-            <div class="portion-icon">🌾</div>
-            <div class="portion-info">
-              <div class="portion-name">Carbohydrates</div>
-              <div class="portion-desc">Cupped hand — grains, fruit, tubers</div>
+          <div class="portion-icon">🌾</div>
+          <div class="portion-body">
+            <div class="portion-top">
+              <div class="portion-title-row">
+                <div class="portion-name">Carbs</div>
+                <div class="portion-size">Cupped hand</div>
+              </div>
+              <div class="portion-controls">
+                <button class="count-btn" data-budget-type="carb" data-budget-delta="-1">−</button>
+                <div class="count-display" id="budget-count-carb">0</div>
+                <button class="count-btn" data-budget-type="carb" data-budget-delta="1">+</button>
+              </div>
             </div>
-          </div>
-          <div class="portion-foot">
-            <div class="portion-kcal" id="budget-kcal-carb">0 kcal</div>
-            <div class="portion-controls">
-              <button class="count-btn" data-budget-type="carb" data-budget-delta="-1">−</button>
-              <div class="count-display" id="budget-count-carb">0</div>
-              <button class="count-btn" data-budget-type="carb" data-budget-delta="1">+</button>
+            <div class="portion-bottom">
+              <div class="portion-desc">grains, fruit, tubers</div>
+              <div class="portion-kcal" id="budget-kcal-carb">0 kcal</div>
             </div>
           </div>
         </div>
         <div class="portion-row portion-row-fat">
-          <div class="portion-head">
-            <div class="portion-icon">🥑</div>
-            <div class="portion-info">
-              <div class="portion-name">Fats</div>
-              <div class="portion-desc">Thumb-sized — oils, nuts, cheese</div>
+          <div class="portion-icon">🥑</div>
+          <div class="portion-body">
+            <div class="portion-top">
+              <div class="portion-title-row">
+                <div class="portion-name">Fats</div>
+                <div class="portion-size">Thumb</div>
+              </div>
+              <div class="portion-controls">
+                <button class="count-btn" data-budget-type="fat" data-budget-delta="-1">−</button>
+                <div class="count-display" id="budget-count-fat">0</div>
+                <button class="count-btn" data-budget-type="fat" data-budget-delta="1">+</button>
+              </div>
             </div>
-          </div>
-          <div class="portion-foot">
-            <div class="portion-kcal" id="budget-kcal-fat">0 kcal</div>
-            <div class="portion-controls">
-              <button class="count-btn" data-budget-type="fat" data-budget-delta="-1">−</button>
-              <div class="count-display" id="budget-count-fat">0</div>
-              <button class="count-btn" data-budget-type="fat" data-budget-delta="1">+</button>
+            <div class="portion-bottom">
+              <div class="portion-desc">oils, nuts, cheese</div>
+              <div class="portion-kcal" id="budget-kcal-fat">0 kcal</div>
             </div>
           </div>
         </div>
@@ -291,76 +303,88 @@
         <div class="portion-grid">
           <!-- Protein -->
           <div class="portion-row portion-row-protein">
-            <div class="portion-head">
-              <div class="portion-icon">🥩</div>
-              <div class="portion-info">
-                <div class="portion-name">Protein</div>
-                <div class="portion-desc">Palm-sized — meat, fish, eggs, legumes</div>
+            <div class="portion-icon">🥩</div>
+            <div class="portion-body">
+              <div class="portion-top">
+                <div class="portion-title-row">
+                  <div class="portion-name">Protein</div>
+                  <div class="portion-size">Palm</div>
+                </div>
+                <div class="portion-controls">
+                  <button class="count-btn" data-count-type="protein" data-count-delta="-1">−</button>
+                  <div class="count-display" id="count-protein">0</div>
+                  <button class="count-btn" data-count-type="protein" data-count-delta="1">+</button>
+                </div>
               </div>
-            </div>
-            <div class="portion-foot">
-              <div class="portion-kcal" id="protein-kcal">0 kcal</div>
-              <div class="portion-controls">
-                <button class="count-btn" data-count-type="protein" data-count-delta="-1">−</button>
-                <div class="count-display" id="count-protein">0</div>
-                <button class="count-btn" data-count-type="protein" data-count-delta="1">+</button>
+              <div class="portion-bottom">
+                <div class="portion-desc">meat, fish, eggs, legumes</div>
+                <div class="portion-kcal" id="protein-kcal">0 kcal</div>
               </div>
             </div>
           </div>
 
           <!-- Veggies -->
           <div class="portion-row portion-row-veggie">
-            <div class="portion-head">
-              <div class="portion-icon">🥦</div>
-              <div class="portion-info">
-                <div class="portion-name">Vegetables</div>
-                <div class="portion-desc">Fist-sized — non-starchy veg</div>
+            <div class="portion-icon">🥦</div>
+            <div class="portion-body">
+              <div class="portion-top">
+                <div class="portion-title-row">
+                  <div class="portion-name">Vegetables</div>
+                  <div class="portion-size">Fist</div>
+                </div>
+                <div class="portion-controls">
+                  <button class="count-btn" data-count-type="veggie" data-count-delta="-1">−</button>
+                  <div class="count-display" id="count-veggie">0</div>
+                  <button class="count-btn" data-count-type="veggie" data-count-delta="1">+</button>
+                </div>
               </div>
-            </div>
-            <div class="portion-foot">
-              <div class="portion-kcal" id="veggie-kcal">0 kcal</div>
-              <div class="portion-controls">
-                <button class="count-btn" data-count-type="veggie" data-count-delta="-1">−</button>
-                <div class="count-display" id="count-veggie">0</div>
-                <button class="count-btn" data-count-type="veggie" data-count-delta="1">+</button>
+              <div class="portion-bottom">
+                <div class="portion-desc">non-starchy veg</div>
+                <div class="portion-kcal" id="veggie-kcal">0 kcal</div>
               </div>
             </div>
           </div>
 
           <!-- Carbs -->
           <div class="portion-row portion-row-carb">
-            <div class="portion-head">
-              <div class="portion-icon">🌾</div>
-              <div class="portion-info">
-                <div class="portion-name">Carbohydrates</div>
-                <div class="portion-desc">Cupped hand — grains, fruit, tubers</div>
+            <div class="portion-icon">🌾</div>
+            <div class="portion-body">
+              <div class="portion-top">
+                <div class="portion-title-row">
+                  <div class="portion-name">Carbs</div>
+                  <div class="portion-size">Cupped hand</div>
+                </div>
+                <div class="portion-controls">
+                  <button class="count-btn" data-count-type="carb" data-count-delta="-1">−</button>
+                  <div class="count-display" id="count-carb">0</div>
+                  <button class="count-btn" data-count-type="carb" data-count-delta="1">+</button>
+                </div>
               </div>
-            </div>
-            <div class="portion-foot">
-              <div class="portion-kcal" id="carb-kcal">0 kcal</div>
-              <div class="portion-controls">
-                <button class="count-btn" data-count-type="carb" data-count-delta="-1">−</button>
-                <div class="count-display" id="count-carb">0</div>
-                <button class="count-btn" data-count-type="carb" data-count-delta="1">+</button>
+              <div class="portion-bottom">
+                <div class="portion-desc">grains, fruit, tubers</div>
+                <div class="portion-kcal" id="carb-kcal">0 kcal</div>
               </div>
             </div>
           </div>
 
           <!-- Fat -->
           <div class="portion-row portion-row-fat">
-            <div class="portion-head">
-              <div class="portion-icon">🥑</div>
-              <div class="portion-info">
-                <div class="portion-name">Fats</div>
-                <div class="portion-desc">Thumb-sized — oils, nuts, cheese</div>
+            <div class="portion-icon">🥑</div>
+            <div class="portion-body">
+              <div class="portion-top">
+                <div class="portion-title-row">
+                  <div class="portion-name">Fats</div>
+                  <div class="portion-size">Thumb</div>
+                </div>
+                <div class="portion-controls">
+                  <button class="count-btn" data-count-type="fat" data-count-delta="-1">−</button>
+                  <div class="count-display" id="count-fat">0</div>
+                  <button class="count-btn" data-count-type="fat" data-count-delta="1">+</button>
+                </div>
               </div>
-            </div>
-            <div class="portion-foot">
-              <div class="portion-kcal" id="fat-kcal">0 kcal</div>
-              <div class="portion-controls">
-                <button class="count-btn" data-count-type="fat" data-count-delta="-1">−</button>
-                <div class="count-display" id="count-fat">0</div>
-                <button class="count-btn" data-count-type="fat" data-count-delta="1">+</button>
+              <div class="portion-bottom">
+                <div class="portion-desc">oils, nuts, cheese</div>
+                <div class="portion-kcal" id="fat-kcal">0 kcal</div>
               </div>
             </div>
           </div>
@@ -368,7 +392,7 @@
 
         <!-- Quick-add shortcuts -->
         <div class="quick-add-section">
-          <div class="quick-add-label">Quick-add</div>
+          <div class="quick-add-label">Shortcuts</div>
           <div class="quick-add-grid">
 
             <!-- Processed snack: +1 carb +1 fat -->

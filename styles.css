@@ -58,7 +58,7 @@
   /* ── Header ── */
   .header {
     text-align: center;
-    margin-bottom: 14px;
+    margin-bottom: 32px;
   }
 
   .logo {
@@ -401,32 +401,65 @@
 
   /* ── Meal Logger ── */
   .portion-grid {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
   }
 
   .portion-row {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 12px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 14px;
+    padding: 10px 12px;
     transition: border-color 0.2s;
   }
 
-  .portion-head {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  .portion-icon {
+    flex-shrink: 0;
+    font-size: 28px;
+    line-height: 1;
   }
 
-  .portion-foot {
+  .portion-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .portion-top,
+  .portion-bottom {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 6px;
+  }
+
+  .portion-title-row {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  .portion-desc {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .portion-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
   .portion-row:focus-within {
@@ -438,33 +471,24 @@
   .portion-row-carb { border-color: rgba(122,176,201,0.3); }
   .portion-row-fat { border-color: rgba(201,180,122,0.3); }
 
-  .portion-icon {
-    font-size: 32px;
-    text-align: center;
-    line-height: 1;
-    flex-shrink: 0;
-  }
-
-  .portion-info {
-    min-width: 0;
-  }
-
   .portion-name {
-    font-weight: 500;
+    font-weight: 700;
     font-size: 15px;
     color: var(--text);
   }
 
-  .portion-desc {
-    font-size: 13px;
+  .portion-size {
+    font-size: 15px;
+    font-weight: 400;
     color: var(--text-muted);
-    margin-top: 1px;
   }
 
-  .portion-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .portion-size::before {
+    content: '(';
+  }
+
+  .portion-size::after {
+    content: ')';
   }
 
   .count-btn {
@@ -499,6 +523,7 @@
   }
 
   .portion-kcal {
+    flex-shrink: 0;
     font-family: 'DM Mono', monospace;
     font-size: 13px;
     color: var(--text-dim);
@@ -506,7 +531,7 @@
   }
 
   .portion-kcal.is-zero {
-    opacity: 0.4;
+    opacity: 0.3;
   }
 
   /* ── Log button ── */
@@ -1088,6 +1113,8 @@
 
   #log-content .portion-row-protein .portion-name,
   #setup-budget .portion-row-protein .portion-name,
+  #log-content .portion-row-protein .portion-size,
+  #setup-budget .portion-row-protein .portion-size,
   #log-content .portion-row-protein .portion-kcal,
   #setup-budget .portion-row-protein .portion-kcal {
     color: #7ab0c9;
@@ -1098,6 +1125,17 @@
     background: rgba(122, 176, 201, 0.2);
   }
 
+  #log-content .portion-row-protein .portion-desc,
+  #setup-budget .portion-row-protein .portion-desc {
+    color: #7ab0c9;
+    opacity: 0.82;
+  }
+
+  #log-content .portion-row-protein .portion-kcal,
+  #setup-budget .portion-row-protein .portion-kcal {
+    opacity: 0.5;
+  }
+
   #log-content .portion-row-veggie,
   #setup-budget .portion-row-veggie {
     background: var(--veggie-dim);
@@ -1105,6 +1143,8 @@
 
   #log-content .portion-row-veggie .portion-name,
   #setup-budget .portion-row-veggie .portion-name,
+  #log-content .portion-row-veggie .portion-size,
+  #setup-budget .portion-row-veggie .portion-size,
   #log-content .portion-row-veggie .portion-kcal,
   #setup-budget .portion-row-veggie .portion-kcal {
     color: var(--veggie);
@@ -1115,6 +1155,17 @@
     background: rgba(122, 201, 122, 0.2);
   }
 
+  #log-content .portion-row-veggie .portion-desc,
+  #setup-budget .portion-row-veggie .portion-desc {
+    color: var(--veggie);
+    opacity: 0.82;
+  }
+
+  #log-content .portion-row-veggie .portion-kcal,
+  #setup-budget .portion-row-veggie .portion-kcal {
+    opacity: 0.5;
+  }
+
   #log-content .portion-row-carb,
   #setup-budget .portion-row-carb {
     background: rgba(232, 160, 106, 0.12);
@@ -1122,6 +1173,8 @@
 
   #log-content .portion-row-carb .portion-name,
   #setup-budget .portion-row-carb .portion-name,
+  #log-content .portion-row-carb .portion-size,
+  #setup-budget .portion-row-carb .portion-size,
   #log-content .portion-row-carb .portion-kcal,
   #setup-budget .portion-row-carb .portion-kcal {
     color: #e8a06a;
@@ -1132,6 +1185,17 @@
     background: rgba(232, 160, 106, 0.2);
   }
 
+  #log-content .portion-row-carb .portion-desc,
+  #setup-budget .portion-row-carb .portion-desc {
+    color: #e8a06a;
+    opacity: 0.82;
+  }
+
+  #log-content .portion-row-carb .portion-kcal,
+  #setup-budget .portion-row-carb .portion-kcal {
+    opacity: 0.5;
+  }
+
   #log-content .portion-row-fat,
   #setup-budget .portion-row-fat {
     background: var(--fat-dim);
@@ -1139,6 +1203,8 @@
 
   #log-content .portion-row-fat .portion-name,
   #setup-budget .portion-row-fat .portion-name,
+  #log-content .portion-row-fat .portion-size,
+  #setup-budget .portion-row-fat .portion-size,
   #log-content .portion-row-fat .portion-kcal,
   #setup-budget .portion-row-fat .portion-kcal {
     color: var(--fat);
@@ -1147,6 +1213,22 @@
   #log-content .portion-row-fat:focus-within,
   #setup-budget .portion-row-fat:focus-within {
     background: rgba(201, 180, 122, 0.2);
+  }
+
+  #log-content .portion-row-fat .portion-desc,
+  #setup-budget .portion-row-fat .portion-desc {
+    color: var(--fat);
+    opacity: 0.82;
+  }
+
+  #log-content .portion-row-fat .portion-kcal,
+  #setup-budget .portion-row-fat .portion-kcal {
+    opacity: 0.5;
+  }
+
+  #log-content .portion-row .portion-kcal.is-zero,
+  #setup-budget .portion-row .portion-kcal.is-zero {
+    opacity: 0.3;
   }
 
   #log-content .meal-total-summary {
@@ -1337,7 +1419,6 @@
     .fields-row { grid-template-columns: 1fr; }
     .goal-grid { grid-template-columns: 1fr 1fr; }
     .macro-mini { grid-template-columns: 1fr 1fr; }
-    .portion-head { gap: 10px; }
   }
 
   /* ── Portion target cards ── */
