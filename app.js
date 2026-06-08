@@ -253,6 +253,7 @@ function switchTab(tab, options) {
     disarmImportBackup();
   }
   if (tab !== 'today') disarmDeleteAllMeals();
+  if (tab !== 'history') disarmDeleteHistoryDay();
 
   if (tab === 'today') {
     if (options.resetToToday) todayViewDate = getActualToday();
@@ -336,6 +337,12 @@ function handleAppClick(event) {
   const dairyChoice = event.target.closest('[data-dairy-choice]');
   if (dairyChoice) {
     confirmDairy(dairyChoice.dataset.dairyChoice);
+    return;
+  }
+
+  const deleteHistoryDayBtn = event.target.closest('[data-delete-history-day]');
+  if (deleteHistoryDayBtn) {
+    handleDeleteHistoryDay(deleteHistoryDayBtn.dataset.deleteHistoryDay);
     return;
   }
 
@@ -655,6 +662,21 @@ function changeBudget(type, delta) {
 /* ══════════════════════════════════════════
    LOG MEAL
 ══════════════════════════════════════════ */
+function formatLogMealDayLabel(day) {
+  if (isSameDay(day, getActualToday())) return 'today';
+  const yesterday = getActualToday();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (isSameDay(day, yesterday)) return 'yesterday';
+  return MONTH_NAMES[day.getMonth()] + ' ' + day.getDate();
+}
+
+function updateLogMealButtonLabel() {
+  const btn = document.getElementById('log-meal-btn');
+  if (!btn) return;
+  const day = logTargetDay || getActualToday();
+  btn.textContent = 'Add to ' + formatLogMealDayLabel(day) + ' →';
+}
+
 function updateLogUI() {
   const noTarget = document.getElementById('no-target-msg');
   const logContent = document.getElementById('log-content');
@@ -664,6 +686,7 @@ function updateLogUI() {
   } else {
     noTarget.style.display = 'none';
     logContent.style.display = 'block';
+    updateLogMealButtonLabel();
     updatePortionKcals();
     updateMealTotal();
   }
@@ -824,7 +847,7 @@ function calcGoalPortions(weight, goalMult, targetKcal, handSize) {
    TODAY & HISTORY
 ══════════════════════════════════════════ */
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DAY_ABBR = ['Su', 'M', 'Tu', 'W', 'Th', 'F', 'Sa'];
+const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MEAL_ICONS = { protein: '🥩', veggie: '🥦', carb: '🌾', fat: '🥑' };
 const PORTION_ROW_META = [
@@ -939,25 +962,56 @@ function kcalToBarPct(kcal, scaleMax) {
   return (kcal / scaleMax) * 100;
 }
 
+function getRollingWeekDayEntries() {
+  return getRollingWeekDays().map(function(date) {
+    const dayStr = date.toDateString();
+    const meals = getMealsForDay(dayStr);
+    return {
+      date: date,
+      dayStr: dayStr,
+      dayTarget: getTargetForDay(dayStr),
+      data: getHistoryDayData(meals)
+    };
+  });
+}
+
+function getRollingWeekAverageKcal(dayEntries) {
+  const todayStr = new Date().toDateString();
+  const loggedDays = dayEntries.filter(function(entry) {
+    return entry.dayStr !== todayStr && entry.data.totalKcal > 0;
+  });
+  if (loggedDays.length === 0) return null;
+
+  const totalKcal = loggedDays.reduce(function(sum, entry) {
+    return sum + entry.data.totalKcal;
+  }, 0);
+  return Math.round(totalKcal / loggedDays.length);
+}
+
+function updateHistoryWeekAverage(dayEntries) {
+  const wrap = document.getElementById('history-week-avg');
+  const valueEl = document.getElementById('history-week-avg-value');
+  if (!wrap || !valueEl) return;
+
+  const avg = getRollingWeekAverageKcal(dayEntries);
+  if (avg === null) {
+    wrap.hidden = true;
+    return;
+  }
+
+  wrap.hidden = false;
+  valueEl.textContent = avg + ' kcal/day';
+}
+
 function renderHistoryChart() {
   const chart = document.getElementById('history-chart');
   if (!chart) return;
 
   const todayStr = new Date().toDateString();
-  const days = getRollingWeekDays();
+  const dayEntries = getRollingWeekDayEntries();
   const labels = [];
 
-  const dayEntries = days.map(function(date) {
-    const dayStr = date.toDateString();
-    const meals = getMealsForDay(dayStr);
-    const dayTarget = getTargetForDay(dayStr);
-    return {
-      date: date,
-      dayStr: dayStr,
-      dayTarget: dayTarget,
-      data: getHistoryDayData(meals)
-    };
-  });
+  updateHistoryWeekAverage(dayEntries);
 
   const scaleMax = getHistoryChartScaleMax(dayEntries);
 
@@ -982,6 +1036,11 @@ function renderHistoryChart() {
 
     const dayEl = document.createElement('div');
     dayEl.className = 'history-chart-day' + (isToday ? ' today' : '');
+
+    const kcalEl = document.createElement('span');
+    kcalEl.className = 'history-chart-kcal' + (consumed <= 0 ? ' is-zero' : '');
+    kcalEl.textContent = consumed > 0 ? String(Math.round(consumed)) : '—';
+    kcalEl.setAttribute('aria-hidden', 'true');
 
     const barWrap = document.createElement('div');
     barWrap.className = 'history-chart-bar-wrap';
@@ -1018,8 +1077,9 @@ function renderHistoryChart() {
     label.className = 'history-chart-label';
     label.textContent = DAY_ABBR[entry.date.getDay()];
 
-    dayEl.appendChild(barWrap);
     dayEl.appendChild(label);
+    dayEl.appendChild(barWrap);
+    dayEl.appendChild(kcalEl);
     row.appendChild(dayEl);
   });
 
@@ -1133,13 +1193,8 @@ function renderMealList(container, meals, options) {
   container.innerHTML = '';
 
   if (meals.length === 0) {
-    let html =
-      '<div class="empty-state"><div class="icon">🍽</div><div>' + emptyMessage + '</div>';
-    if (options && options.logMealTab) {
-      html += '<button type="button" class="btn btn-primary empty-state-cta" data-tab="log">Log meal</button>';
-    }
-    html += '</div>';
-    container.innerHTML = html;
+    container.innerHTML =
+      '<div class="empty-state"><div class="icon">🍽</div><div>' + emptyMessage + '</div></div>';
     return;
   }
 
@@ -1265,8 +1320,7 @@ function renderToday() {
   renderPortionCards(document.getElementById('portion-targets'), totals, goals);
   renderMealList(document.getElementById('meal-list'), dayMeals, {
     deletable: true,
-    emptyMessage: isViewingToday ? 'No meals logged yet today.' : 'No meals logged on this day.',
-    logMealTab: true
+    emptyMessage: isViewingToday ? 'No meals logged yet today.' : 'No meals logged on this day.'
   });
 
   const resetWrap = document.getElementById('today-reset-wrap');
@@ -1283,6 +1337,7 @@ function renderToday() {
 function toggleHistoryDay(dayStr) {
   if (historyExpandedDays.has(dayStr)) {
     historyExpandedDays.delete(dayStr);
+    if (deleteHistoryDayArmed === dayStr) disarmDeleteHistoryDay();
   } else {
     historyExpandedDays.add(dayStr);
   }
@@ -1302,6 +1357,8 @@ function renderHistory() {
       chart.innerHTML = '';
       chart.setAttribute('aria-hidden', 'true');
     }
+    const weekAvg = document.getElementById('history-week-avg');
+    if (weekAvg) weekAvg.hidden = true;
     return;
   }
 
@@ -1361,6 +1418,22 @@ function renderHistory() {
     renderMealList(mealList, group.meals);
     dayBlock.appendChild(mealList);
 
+    const deleteWrap = document.createElement('div');
+    deleteWrap.className = 'history-delete-day-wrap';
+    deleteWrap.hidden = !isExpanded;
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'btn-link history-delete-day-btn';
+    deleteBtn.dataset.deleteHistoryDay = group.dayStr;
+    deleteBtn.textContent = deleteHistoryDayArmed === group.dayStr
+      ? DELETE_HISTORY_DAY_CONFIRM_LABEL
+      : DELETE_HISTORY_DAY_LABEL;
+    if (deleteHistoryDayArmed === group.dayStr) {
+      deleteBtn.classList.add('btn-link-armed');
+    }
+    deleteWrap.appendChild(deleteBtn);
+    dayBlock.appendChild(deleteWrap);
+
     list.appendChild(dayBlock);
   });
 }
@@ -1401,10 +1474,46 @@ function handleResetDay() {
 
 function performResetDay() {
   disarmDeleteAllMeals();
-  const dayStr = getTodayViewDayStr();
+  deleteMealsForDay(getTodayViewDayStr());
+}
+
+const DELETE_HISTORY_DAY_LABEL = 'Delete day';
+const DELETE_HISTORY_DAY_CONFIRM_LABEL = 'Are you sure?';
+let deleteHistoryDayArmed = null;
+
+function disarmDeleteHistoryDay() {
+  deleteHistoryDayArmed = null;
+  document.querySelectorAll('.history-delete-day-btn').forEach(function(btn) {
+    btn.textContent = DELETE_HISTORY_DAY_LABEL;
+    btn.classList.remove('btn-link-armed');
+  });
+}
+
+function handleDeleteHistoryDay(dayStr) {
+  if (deleteHistoryDayArmed !== dayStr) {
+    disarmDeleteHistoryDay();
+    deleteHistoryDayArmed = dayStr;
+    document.querySelectorAll('.history-delete-day-btn').forEach(function(btn) {
+      if (btn.dataset.deleteHistoryDay === dayStr) {
+        btn.textContent = DELETE_HISTORY_DAY_CONFIRM_LABEL;
+        btn.classList.add('btn-link-armed');
+      }
+    });
+    return;
+  }
+  performDeleteHistoryDay(dayStr);
+}
+
+function deleteMealsForDay(dayStr) {
   state.meals = state.meals.filter(m => new Date(m.timestamp).toDateString() !== dayStr);
   saveState();
   refreshDayViews();
+}
+
+function performDeleteHistoryDay(dayStr) {
+  disarmDeleteHistoryDay();
+  historyExpandedDays.delete(dayStr);
+  deleteMealsForDay(dayStr);
 }
 
 const RESET_BTN_LABEL = 'Reset everything';
@@ -1527,11 +1636,21 @@ const ARMED_CONFIRM_CONTROLS = [
     disarm: disarmImportBackup,
     buttonId: 'import-backup-btn',
     insideSelectors: ['#import-backup-status']
+  },
+  {
+    isArmed: function() { return deleteHistoryDayArmed !== null; },
+    disarm: disarmDeleteHistoryDay,
+    isInside: function(event) {
+      if (!deleteHistoryDayArmed) return false;
+      const btn = event.target.closest('[data-delete-history-day]');
+      return btn && btn.dataset.deleteHistoryDay === deleteHistoryDayArmed;
+    }
   }
 ];
 
 function isClickInsideArmedConfirm(event, control) {
-  if (event.target.closest('#' + control.buttonId)) return true;
+  if (control.isInside && control.isInside(event)) return true;
+  if (control.buttonId && event.target.closest('#' + control.buttonId)) return true;
   if (!control.insideSelectors) return false;
   return control.insideSelectors.some(function(selector) {
     return event.target.closest(selector);

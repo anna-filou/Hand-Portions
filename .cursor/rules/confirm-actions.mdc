@@ -36,7 +36,7 @@ Add an entry to `ARMED_CONFIRM_CONTROLS` in `app.js`:
 ## When to disarm (without confirming)
 
 - Click/tap outside the control (`handleAppClick` → `disarmArmedConfirmsOnClickOutside`)
-- Leave the relevant tab (`switchTab`: setup actions when `tab !== 'setup'`, delete meals when `tab !== 'today'`)
+- Leave the relevant tab (`switchTab`: setup actions when `tab !== 'setup'`, delete meals when `tab !== 'today'`, delete history day when `tab !== 'history'`)
 - Close the setup accordion panel (`setSetupPanelOpen` for backup/danger)
 - After successful `perform…()`, on validation errors, or when the control is hidden (e.g. no meals left)
 
@@ -52,3 +52,4 @@ Add an entry to `ARMED_CONFIRM_CONTROLS` in `app.js`:
 | Clear all (Today) | `delete-all-meals-btn` | Are you sure? |
 | Reset everything (Settings) | `reset-everything-btn` | Are you sure? |
 | Import backup (Settings) | `import-backup-btn` | Confirm import? |
+| Delete day (History, expanded) | `[data-delete-history-day]` | Are you sure? |

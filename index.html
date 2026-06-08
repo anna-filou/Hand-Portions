@@ -434,7 +434,7 @@
         </div>
 
         <div class="log-btn-wrap">
-          <button class="btn btn-primary" data-action="log-meal">Log this meal →</button>
+          <button type="button" class="btn btn-primary" id="log-meal-btn" data-action="log-meal">Add to today →</button>
           <button class="btn btn-ghost btn-inline" data-action="reset-counts">Clear</button>
         </div>
       </div>
@@ -489,8 +489,10 @@
           <div class="empty-state">
             <div class="icon">🍽</div>
             <div>No meals logged yet today.</div>
-            <button type="button" class="btn btn-primary empty-state-cta" data-tab="log">Log meal</button>
           </div>
+        </div>
+        <div class="today-log-wrap">
+          <button type="button" class="btn btn-primary today-log-meal-btn" data-tab="log">Log meal</button>
         </div>
         <div class="today-reset-wrap" id="today-reset-wrap" hidden>
           <button type="button" class="btn-link" id="delete-all-meals-btn" data-action="reset-day">Clear all</button>
@@ -508,6 +510,10 @@
     </div>
 
     <div id="history-content">
+      <div id="history-week-avg" class="history-week-avg" hidden>
+        <span class="history-week-avg-label">Average, excluding today</span>
+        <span class="history-week-avg-value" id="history-week-avg-value"></span>
+      </div>
       <div id="history-chart" class="history-chart" aria-hidden="true"></div>
       <div id="history-list"></div>
     </div>

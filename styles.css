@@ -262,6 +262,17 @@
     color: var(--protein);
   }
 
+  #today-content .today-log-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+  }
+
+  #today-content .today-log-meal-btn {
+    width: auto;
+    padding: 12px 24px;
+  }
+
   #today-content .today-reset-wrap:not([hidden]) {
     display: flex;
     justify-content: center;
@@ -687,13 +698,6 @@
 
   .empty-state .icon { font-size: 32px; margin-bottom: 10px; }
 
-  .empty-state-cta {
-    width: auto;
-    display: inline-block;
-    margin-top: 16px;
-    padding: 12px 24px;
-  }
-
   /* ── Info callout ── */
   .info-callout {
     background: var(--accent-dim2);
@@ -918,6 +922,27 @@
   }
 
   /* ── History ── */
+  .history-week-avg {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .history-week-avg-label {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  .history-week-avg-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    color: var(--accent);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
   #history-content .empty-state {
     padding: 40px 0;
   }
@@ -932,7 +957,7 @@
     justify-content: space-between;
     align-items: flex-end;
     gap: 6px;
-    padding: 0 8px;
+    padding: 0;
     overflow: visible;
   }
 
@@ -940,9 +965,26 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex: 1;
     min-width: 0;
+  }
+
+  .history-chart-kcal {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .history-chart-kcal.is-zero {
+    color: var(--text-dim);
+    opacity: 0.45;
+  }
+
+  .history-chart-day.today .history-chart-kcal:not(.is-zero) {
+    color: var(--accent);
   }
 
   .history-chart-bar-wrap {
@@ -1163,6 +1205,12 @@
 
   .history-day-meals[hidden] {
     display: none;
+  }
+
+  .history-delete-day-wrap:not([hidden]) {
+    display: flex;
+    justify-content: center;
+    padding: 12px 16px 14px;
   }
 
   /* ── Log: flat layout (no card boxes) ── */
