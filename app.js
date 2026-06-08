@@ -25,7 +25,8 @@ let state = {
     bodyfat: '',
     activity: '1.55'
   },
-  dynamicRecalc: false
+  dynamicRecalc: false,
+  targetHistory: []
 };
 
 const STORAGE_KEY = 'handful-state-v1';
@@ -60,6 +61,74 @@ function cleanMeals(meals) {
     }));
 }
 
+function cleanTargetHistory(history) {
+  if (!Array.isArray(history)) return [];
+
+  return history
+    .filter(function(entry) {
+      return isObject(entry) && typeof entry.dayStr === 'string' && Number.isFinite(Number(entry.target));
+    })
+    .map(function(entry) {
+      return { dayStr: entry.dayStr, target: Math.round(Number(entry.target)) };
+    })
+    .filter(function(entry) { return entry.target > 0; })
+    .sort(function(a, b) { return new Date(a.dayStr) - new Date(b.dayStr); });
+}
+
+function getFirstTrackDayStr() {
+  if (state.meals.length === 0) return new Date().toDateString();
+
+  let earliest = state.meals[0].timestamp;
+  state.meals.forEach(function(meal) {
+    if (meal.timestamp < earliest) earliest = meal.timestamp;
+  });
+  return new Date(earliest).toDateString();
+}
+
+function migrateTargetHistory() {
+  if (state.targetHistory.length > 0 || !state.target) return;
+
+  ensureBudget();
+  const kcal = budgetTotalKcal();
+  if (kcal <= 0) return;
+
+  state.targetHistory = [{ dayStr: getFirstTrackDayStr(), target: kcal }];
+}
+
+function recordTargetForToday() {
+  if (!state.target) return;
+
+  ensureBudget();
+  const kcal = budgetTotalKcal();
+  if (kcal <= 0) return;
+
+  const dayStr = new Date().toDateString();
+  const last = state.targetHistory[state.targetHistory.length - 1];
+
+  if (last && last.dayStr === dayStr) {
+    if (last.target === kcal) return;
+    last.target = kcal;
+    return;
+  }
+
+  state.targetHistory.push({ dayStr: dayStr, target: kcal });
+}
+
+function getTargetForDay(dayStr) {
+  if (state.targetHistory.length === 0) return null;
+
+  const firstDay = state.targetHistory[0].dayStr;
+  if (new Date(dayStr) < new Date(firstDay)) return null;
+
+  let target = null;
+  state.targetHistory.forEach(function(entry) {
+    if (new Date(entry.dayStr) <= new Date(dayStr)) {
+      target = entry.target;
+    }
+  });
+  return target;
+}
+
 function loadState() {
   try {
     const rawState = localStorage.getItem(STORAGE_KEY);
@@ -88,8 +157,10 @@ function loadState() {
         ...state.profile,
         ...(isObject(savedState.profile) ? savedState.profile : {})
       },
-      dynamicRecalc: savedState.dynamicRecalc === true
+      dynamicRecalc: savedState.dynamicRecalc === true,
+      targetHistory: cleanTargetHistory(savedState.targetHistory)
     };
+    migrateTargetHistory();
   } catch (error) {
     console.warn('Unable to load saved Handful state.', error);
   }
@@ -106,7 +177,8 @@ function saveState() {
       goalMult: state.goalMult,
       weight: state.weight,
       profile: state.profile,
-      dynamicRecalc: state.dynamicRecalc
+      dynamicRecalc: state.dynamicRecalc,
+      targetHistory: state.targetHistory
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persistentState));
@@ -265,6 +337,7 @@ function selectHand(el) {
   updatePortionKcals();
   updateMealTotal();
   updateSetupUI();
+  recordTargetForToday();
   saveState();
   refreshDayViews();
 }
@@ -331,6 +404,7 @@ function calculateTarget() {
     activity: String(activity)
   };
   state.budget = calcGoalPortions(weight, state.goalMult, state.target, state.handSize);
+  recordTargetForToday();
   saveState();
   setupWizardOpen = false;
   updateSetupUI();
@@ -501,6 +575,7 @@ function changeBudget(type, delta) {
 
   state.budget[type] = Math.max(0, (state.budget[type] || 0) + delta);
   updateSetupUI();
+  recordTargetForToday();
   saveState();
   refreshDayViews();
 }
@@ -668,6 +743,7 @@ function calcGoalPortions(weight, goalMult, targetKcal, handSize) {
    TODAY & HISTORY
 ══════════════════════════════════════════ */
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_ABBR = ['Su', 'M', 'Tu', 'W', 'Th', 'F', 'Sa'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MEAL_ICONS = { protein: '🥩', veggie: '🥦', carb: '🌾', fat: '🥑' };
 const PORTION_ROW_META = [
@@ -698,6 +774,143 @@ function sumMealTotals(meals) {
     });
   });
   return totals;
+}
+
+function getRollingWeekDays() {
+  const days = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    days.push(date);
+  }
+  return days;
+}
+
+function getDayKcalByType(meals) {
+  const p = state.portions[state.handSize];
+  const kcalByType = { protein: 0, veggie: 0, carb: 0, fat: 0 };
+  meals.forEach(function(meal) {
+    PORTION_TYPES.forEach(function(type) {
+      kcalByType[type] += meal.portions[type] * p[type];
+    });
+  });
+  return kcalByType;
+}
+
+function getHistoryDayData(meals, target) {
+  const kcalByType = getDayKcalByType(meals);
+  const totalKcal = PORTION_TYPES.reduce(function(sum, type) {
+    return sum + kcalByType[type];
+  }, 0);
+  const consumedLo = Math.round(totalKcal * 0.95);
+  const isOver = target > 0 && totalKcal > 0 && consumedLo > target;
+
+  return { kcalByType: kcalByType, totalKcal: totalKcal, isOver: isOver };
+}
+
+function getHistoryChartScaleMax(dayEntries) {
+  let max = 0;
+  dayEntries.forEach(function(entry) {
+    if (entry.dayTarget > max) max = entry.dayTarget;
+    if (entry.data.totalKcal > max) max = entry.data.totalKcal;
+  });
+  if (max <= 0) return 1;
+  return Math.ceil(max * 1.12);
+}
+
+function kcalToBarPct(kcal, scaleMax) {
+  if (scaleMax <= 0 || kcal <= 0) return 0;
+  return (kcal / scaleMax) * 100;
+}
+
+function renderHistoryChart() {
+  const chart = document.getElementById('history-chart');
+  if (!chart) return;
+
+  const todayStr = new Date().toDateString();
+  const days = getRollingWeekDays();
+  const labels = [];
+
+  const dayEntries = days.map(function(date) {
+    const dayStr = date.toDateString();
+    const meals = getMealsForDay(dayStr);
+    const dayTarget = getTargetForDay(dayStr);
+    return {
+      date: date,
+      dayStr: dayStr,
+      dayTarget: dayTarget,
+      data: getHistoryDayData(meals, dayTarget || 0)
+    };
+  });
+
+  const scaleMax = getHistoryChartScaleMax(dayEntries);
+
+  chart.innerHTML = '';
+  chart.removeAttribute('aria-hidden');
+  chart.setAttribute('role', 'img');
+
+  const row = document.createElement('div');
+  row.className = 'history-chart-days';
+
+  dayEntries.forEach(function(entry) {
+    const consumed = entry.data.totalKcal;
+    const isToday = entry.dayStr === todayStr;
+    const dayTarget = entry.dayTarget;
+
+    labels.push(
+      DAY_ABBR[entry.date.getDay()] + ': ' +
+      (consumed > 0
+        ? Math.round(consumed) + (dayTarget ? ' of ' + dayTarget + ' kcal' : ' kcal')
+        : (dayTarget ? 'no meals, target ' + dayTarget + ' kcal' : 'no meals'))
+    );
+
+    const dayEl = document.createElement('div');
+    dayEl.className = 'history-chart-day' + (isToday ? ' today' : '');
+
+    const barWrap = document.createElement('div');
+    barWrap.className = 'history-chart-bar-wrap' + (entry.data.isOver ? ' over' : '');
+
+    const bar = document.createElement('div');
+    bar.className = 'history-chart-bar';
+    bar.setAttribute('aria-hidden', 'true');
+
+    const fill = document.createElement('div');
+    fill.className = 'history-chart-fill';
+    fill.style.height = kcalToBarPct(consumed, scaleMax) + '%';
+
+    PORTION_TYPES.forEach(function(type) {
+      const kcal = entry.data.kcalByType[type];
+      if (kcal <= 0) return;
+      const seg = document.createElement('div');
+      seg.className = 'history-chart-seg progress-seg ' + type;
+      seg.style.flex = kcal + ' 1 0';
+      fill.appendChild(seg);
+    });
+
+    bar.appendChild(fill);
+    barWrap.appendChild(bar);
+
+    if (dayTarget) {
+      const targetLine = document.createElement('div');
+      targetLine.className = 'history-chart-target-line';
+      targetLine.style.bottom = kcalToBarPct(dayTarget, scaleMax) + '%';
+      targetLine.setAttribute('aria-hidden', 'true');
+      barWrap.appendChild(targetLine);
+    }
+
+    const label = document.createElement('span');
+    label.className = 'history-chart-label';
+    label.textContent = DAY_ABBR[entry.date.getDay()];
+
+    dayEl.appendChild(barWrap);
+    dayEl.appendChild(label);
+    row.appendChild(dayEl);
+  });
+
+  chart.appendChild(row);
+  chart.setAttribute('aria-label', 'Last 7 days calorie intake. ' + labels.join('. '));
 }
 
 function groupMealsByDay() {
@@ -953,11 +1166,18 @@ function renderHistory() {
   if (!state.target) {
     noTarget.style.display = 'block';
     content.style.display = 'none';
+    const chart = document.getElementById('history-chart');
+    if (chart) {
+      chart.innerHTML = '';
+      chart.setAttribute('aria-hidden', 'true');
+    }
     return;
   }
 
   noTarget.style.display = 'none';
   content.style.display = 'block';
+
+  renderHistoryChart();
 
   const dayGroups = groupMealsByDay();
 
@@ -996,10 +1216,11 @@ function renderHistory() {
       carb: totals.carb,
       fat: totals.fat
     });
-    renderPortionRow(portionsRow, totals, goals, {
+    const dayTarget = getTargetForDay(group.dayStr);
+    renderPortionRow(portionsRow, totals, goals, dayTarget ? {
       consumed: totals.kcal,
-      goal: getEffectiveTarget()
-    });
+      goal: dayTarget
+    } : null);
     expandBtn.appendChild(portionsRow);
     dayBlock.appendChild(expandBtn);
 
