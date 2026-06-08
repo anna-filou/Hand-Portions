@@ -1,0 +1,32 @@
+---
+description: Update README when app behavior or functionality changes
+alwaysApply: true
+---
+
+# Keep README in sync with functionality
+
+When a change affects **how the app works**, update `README.md` in the same PR or commit — especially the **How it works** and **Architecture** sections.
+
+## Update README when you change
+
+- User-facing behavior (tabs, flows, setup, logging, history, budgets)
+- Calculations, formulas, portion logic, or defaults
+- Data model, storage keys, backup format, or persistence
+- PWA / offline / service worker behavior
+- New, removed, or renamed features or settings
+
+## Do not require a README update for
+
+- **Styling only** — CSS polish, colors, spacing, typography, animations
+- Copy tweaks that don't change behavior (unless the README quotes that copy)
+- Version bumps with no functional change
+
+## What to update
+
+Match the change scope — don't rewrite the whole file.
+
+- New feature or flow → add or revise the relevant subsection under **How it works**
+- Changed architecture or file roles → update **Architecture** or **Files**
+- Removed feature → delete or revise the outdated description
+
+If unsure, ask: *Would someone reading only the README misunderstand how the app works after this change?* If yes, update it.
