@@ -1,7 +1,7 @@
 {
   "name": "Handful — Portion Calorie Tracker",
   "short_name": "Handful",
-  "version": "0.9.5",
+  "version": "0.9.12",
   "description": "Track hand-sized meal portions and daily calorie targets offline.",
   "start_url": ".",
   "scope": ".",

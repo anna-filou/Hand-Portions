@@ -198,6 +198,8 @@ function switchTab(tab) {
     t.classList.toggle('active', t.dataset.tab === tab);
   });
 
+  if (tab !== 'setup') disarmResetEverything();
+
   if (tab === 'today') renderToday();
   if (tab === 'history') renderHistory();
   if (tab === 'log') updateLogUI();
@@ -311,6 +313,7 @@ function runAction(action) {
     'log-meal': logMeal,
     'reset-counts': resetCounts,
     'reset-day': resetDay,
+    'reset-everything': handleResetEverything,
     'close-heavy-popup': closeHeavyPopup,
     'close-light-popup': closeLightPopup,
     'close-dairy-popup': closeDairyPopup
@@ -499,6 +502,7 @@ function setSetupPanelOpen(panelKey, open) {
   panel.classList.toggle('open', open);
   const toggle = panel.querySelector('.setup-panel-toggle');
   if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (panelKey === 'danger' && !open) disarmResetEverything();
 }
 
 function toggleSetupPanel(panelKey) {
@@ -1242,6 +1246,75 @@ function resetDay() {
   state.meals = state.meals.filter(m => new Date(m.timestamp).toDateString() !== todayStr);
   saveState();
   refreshDayViews();
+}
+
+const RESET_BTN_LABEL = 'Reset everything';
+const RESET_BTN_CONFIRM_LABEL = 'Are you sure?';
+let resetEverythingArmed = false;
+
+function disarmResetEverything() {
+  resetEverythingArmed = false;
+  const btn = document.getElementById('reset-everything-btn');
+  if (!btn) return;
+  btn.textContent = RESET_BTN_LABEL;
+  btn.classList.remove('setup-reset-btn-armed');
+}
+
+function handleResetEverything() {
+  if (!resetEverythingArmed) {
+    resetEverythingArmed = true;
+    const btn = document.getElementById('reset-everything-btn');
+    if (btn) {
+      btn.textContent = RESET_BTN_CONFIRM_LABEL;
+      btn.classList.add('setup-reset-btn-armed');
+    }
+    return;
+  }
+  performResetEverything();
+}
+
+function performResetEverything() {
+  disarmResetEverything();
+
+  state.target = null;
+  state.budget = null;
+  state.handSize = 'average';
+  state.counts = { protein: 0, veggie: 0, carb: 0, fat: 0 };
+  state.meals = [];
+  state.goalMult = 1.0;
+  state.profile = {
+    weight: '',
+    height: '',
+    age: '',
+    bodyfat: '',
+    activity: '1.55'
+  };
+  state.dynamicRecalc = false;
+  state.targetHistory = [];
+  delete state.weight;
+
+  historyExpandedDays.clear();
+  setupWizardOpen = false;
+
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn('Unable to clear saved Handful state.', error);
+  }
+
+  document.querySelectorAll('.toggle-option[data-hand]').forEach(function(el) {
+    el.classList.toggle('selected', el.dataset.hand === 'average');
+  });
+  document.querySelectorAll('.goal-option').forEach(function(el) {
+    el.classList.toggle('selected', parseFloat(el.dataset.mult) === 1.0);
+  });
+
+  ['heavy', 'light', 'dairy'].forEach(closePopup);
+
+  restoreProfileUI();
+  restoreCountUI();
+  updateSetupUI();
+  switchTab('setup');
 }
 
 /* ══════════════════════════════════════════

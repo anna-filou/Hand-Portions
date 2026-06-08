@@ -648,6 +648,21 @@
 
   .setup-demo-btn { margin-bottom: 10px; }
 
+  .setup-reset-btn {
+    width: 100%;
+  }
+
+  .setup-reset-btn-armed {
+    border-color: var(--protein);
+    color: var(--protein);
+    font-weight: 700;
+  }
+
+  .setup-reset-btn-armed:hover {
+    color: var(--protein);
+    border-color: var(--protein);
+  }
+
   .setup-accordion {
     display: flex;
     flex-direction: column;
