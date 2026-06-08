@@ -313,7 +313,7 @@
   .progress-total { color: var(--text-dim); }
 
   .progress-bar {
-    height: 6px;
+    height: 10px;
     background: var(--border);
     border-radius: 99px;
     overflow: hidden;
