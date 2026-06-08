@@ -715,39 +715,58 @@
     .portion-row { grid-template-columns: 28px 1fr auto; gap: 10px; }
   }
 
-  /* ── Portion target rows ── */
-  .pt-row {
+  /* ── Portion target cards ── */
+  #portion-targets {
     display: grid;
-    grid-template-columns: 26px 1fr auto auto;
-    align-items: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
   }
-  .pt-row:last-child { border-bottom: none; }
-  .pt-icon { font-size: 18px; text-align: center; }
-  .pt-label { font-size: 14px; color: var(--text-muted); }
-  .pt-label strong { display: block; font-size: 15px; color: var(--text); font-weight: 500; }
-  .pt-count {
-    font-family: 'DM Mono', monospace;
-    font-size: 22px;
+
+  .pt-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "icon label"
+      "icon portions";
+    align-items: center;
+    column-gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    min-width: 0;
+  }
+
+  .pt-icon {
+    grid-area: icon;
+    font-size: 24px;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .pt-label {
+    grid-area: label;
+    font-size: 14px;
     font-weight: 500;
-    text-align: right;
-    min-width: 28px;
+    color: var(--text);
+    line-height: 1.25;
   }
-  .pt-target {
+
+  .pt-portions {
+    grid-area: portions;
     font-family: 'DM Mono', monospace;
     font-size: 13px;
-    color: var(--text-dim);
-    text-align: right;
-    min-width: 40px;
+    color: var(--text-muted);
+    line-height: 1.35;
+    white-space: nowrap;
   }
-  .pt-count.protein { color: var(--protein); }
-  .pt-count.veggie { color: var(--veggie); }
-  .pt-count.carb { color: var(--carb); }
-  .pt-count.fat { color: var(--fat); }
-  .pt-count.met { color: var(--veggie); }
-  .pt-count.over { color: var(--protein); }
+
+  .pt-portions.protein { color: var(--protein); }
+  .pt-portions.veggie { color: var(--veggie); }
+  .pt-portions.carb { color: var(--carb); }
+  .pt-portions.fat { color: var(--fat); }
+  .pt-portions.met { color: var(--veggie); }
+  .pt-portions.over { color: var(--protein); }
 
   /* ── Quick-add shortcuts ── */
   .quick-add-section {
