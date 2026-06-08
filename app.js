@@ -795,6 +795,9 @@ function registerServiceWorker() {
   });
 }
 
+const versionEl = document.getElementById('app-version');
+if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
+
 document.addEventListener('click', handleAppClick);
 loadState();
 restoreProfileUI();
