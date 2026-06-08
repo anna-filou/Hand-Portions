@@ -243,6 +243,22 @@
       </div>
     </section>
 
+    <section class="setup-panel" id="setup-panel-backup">
+      <button class="setup-panel-toggle" type="button" data-setup-panel="backup" aria-expanded="false" aria-controls="setup-backup-body">
+        <span class="setup-panel-title"><span>💾</span> Backup & restore</span>
+        <span class="setup-panel-chevron" aria-hidden="true"></span>
+      </button>
+      <div class="setup-panel-body" id="setup-backup-body">
+        <p class="setup-recalc-hint">Backs up and restores your meal history, daily portion budget, calorie targets (including target history), hand size, goal, body stats, dynamic budget setting, and today’s in-progress log counts. Import replaces all of that on this device.</p>
+        <div class="setup-backup-actions">
+          <button type="button" class="btn btn-ghost setup-reset-btn" data-action="export-backup">Export backup</button>
+          <button type="button" id="import-backup-btn" class="btn btn-ghost setup-reset-btn" data-action="import-backup">Import backup</button>
+        </div>
+        <input type="file" id="import-backup-input" accept="application/json,.json" hidden>
+        <p id="import-backup-status" class="setup-import-status" hidden></p>
+      </div>
+    </section>
+
     <section class="setup-panel" id="setup-panel-danger">
       <button class="setup-panel-toggle" type="button" data-setup-panel="danger" aria-expanded="false" aria-controls="setup-danger-body">
         <span class="setup-panel-title"><span>⚠️</span> Reset everything</span>

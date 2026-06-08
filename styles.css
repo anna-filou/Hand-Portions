@@ -663,6 +663,19 @@
     border-color: var(--protein);
   }
 
+  .setup-backup-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .setup-import-status {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
   .setup-accordion {
     display: flex;
     flex-direction: column;

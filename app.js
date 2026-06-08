@@ -30,6 +30,8 @@ let state = {
 };
 
 const STORAGE_KEY = 'handful-state-v1';
+const EXPORT_FORMAT = 'handful-backup';
+const EXPORT_FORMAT_VERSION = 1;
 const PORTION_TYPES = ['protein', 'veggie', 'carb', 'fat'];
 const DYNAMIC_CUT_ORDER = ['fat', 'protein', 'carb'];
 const HAND_SIZES = ['small', 'average', 'big'];
@@ -129,38 +131,76 @@ function getTargetForDay(dayStr) {
   return target;
 }
 
+function getPersistentState() {
+  return {
+    target: state.target,
+    budget: state.budget,
+    handSize: state.handSize,
+    counts: state.counts,
+    meals: state.meals,
+    goalMult: state.goalMult,
+    weight: state.weight,
+    profile: state.profile,
+    dynamicRecalc: state.dynamicRecalc,
+    targetHistory: state.targetHistory
+  };
+}
+
+function normalizeSavedState(rawState) {
+  if (!isObject(rawState)) return null;
+
+  const data = isObject(rawState.data) ? rawState.data : rawState;
+  if (!isObject(data)) return null;
+
+  const target = Number(data.target);
+  const goalMult = Number(data.goalMult);
+  const weight = Number(data.weight);
+  const budget = isObject(data.budget) ? cleanCounts(data.budget) : null;
+  const hasBudget = budget && PORTION_TYPES.some((type) => budget[type] > 0);
+
+  return {
+    target: Number.isFinite(target) && target > 0 ? target : null,
+    budget: hasBudget ? budget : null,
+    handSize: HAND_SIZES.includes(data.handSize) ? data.handSize : 'average',
+    counts: cleanCounts(data.counts),
+    meals: cleanMeals(data.meals),
+    goalMult: Number.isFinite(goalMult) && goalMult > 0 ? goalMult : 1.0,
+    weight: Number.isFinite(weight) && weight > 0 ? weight : undefined,
+    profile: {
+      weight: '',
+      height: '',
+      age: '',
+      bodyfat: '',
+      activity: '1.55',
+      ...(isObject(data.profile) ? data.profile : {})
+    },
+    dynamicRecalc: data.dynamicRecalc === true,
+    targetHistory: cleanTargetHistory(data.targetHistory)
+  };
+}
+
+function applyPersistentState(rawState) {
+  const normalized = normalizeSavedState(rawState);
+  if (!normalized) return false;
+
+  state = {
+    ...state,
+    ...normalized,
+    portions: state.portions,
+    macroG: state.macroG
+  };
+
+  if (normalized.weight === undefined) delete state.weight;
+
+  migrateTargetHistory();
+  return true;
+}
+
 function loadState() {
   try {
     const rawState = localStorage.getItem(STORAGE_KEY);
     if (!rawState) return;
-
-    const savedState = JSON.parse(rawState);
-    if (!isObject(savedState)) return;
-
-    const target = Number(savedState.target);
-    const goalMult = Number(savedState.goalMult);
-    const weight = Number(savedState.weight);
-
-    const budget = isObject(savedState.budget) ? cleanCounts(savedState.budget) : null;
-    const hasBudget = PORTION_TYPES.some((type) => budget[type] > 0);
-
-    state = {
-      ...state,
-      target: Number.isFinite(target) && target > 0 ? target : null,
-      budget: hasBudget ? budget : null,
-      handSize: HAND_SIZES.includes(savedState.handSize) ? savedState.handSize : state.handSize,
-      counts: cleanCounts(savedState.counts),
-      meals: cleanMeals(savedState.meals),
-      goalMult: Number.isFinite(goalMult) && goalMult > 0 ? goalMult : state.goalMult,
-      weight: Number.isFinite(weight) && weight > 0 ? weight : undefined,
-      profile: {
-        ...state.profile,
-        ...(isObject(savedState.profile) ? savedState.profile : {})
-      },
-      dynamicRecalc: savedState.dynamicRecalc === true,
-      targetHistory: cleanTargetHistory(savedState.targetHistory)
-    };
-    migrateTargetHistory();
+    applyPersistentState(JSON.parse(rawState));
   } catch (error) {
     console.warn('Unable to load saved Handful state.', error);
   }
@@ -168,23 +208,28 @@ function loadState() {
 
 function saveState() {
   try {
-    const persistentState = {
-      target: state.target,
-      budget: state.budget,
-      handSize: state.handSize,
-      counts: state.counts,
-      meals: state.meals,
-      goalMult: state.goalMult,
-      weight: state.weight,
-      profile: state.profile,
-      dynamicRecalc: state.dynamicRecalc,
-      targetHistory: state.targetHistory
-    };
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(persistentState));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(getPersistentState()));
   } catch (error) {
     console.warn('Unable to save Handful state.', error);
   }
+}
+
+function syncUIAfterStateChange() {
+  document.querySelectorAll('.toggle-option[data-hand]').forEach(function(el) {
+    el.classList.toggle('selected', el.dataset.hand === state.handSize);
+  });
+  document.querySelectorAll('.goal-option').forEach(function(el) {
+    el.classList.toggle('selected', parseFloat(el.dataset.mult) === state.goalMult);
+  });
+  document.querySelectorAll('[data-dynamic-recalc]').forEach(function(el) {
+    el.classList.toggle('selected', el.dataset.dynamicRecalc === String(state.dynamicRecalc));
+  });
+
+  restoreProfileUI();
+  restoreCountUI();
+  updateSetupUI();
+  refreshDayViews();
+  updateLogUI();
 }
 
 /* ══════════════════════════════════════════
@@ -198,7 +243,10 @@ function switchTab(tab) {
     t.classList.toggle('active', t.dataset.tab === tab);
   });
 
-  if (tab !== 'setup') disarmResetEverything();
+  if (tab !== 'setup') {
+    disarmResetEverything();
+    disarmImportBackup();
+  }
 
   if (tab === 'today') renderToday();
   if (tab === 'history') renderHistory();
@@ -314,6 +362,8 @@ function runAction(action) {
     'reset-counts': resetCounts,
     'reset-day': resetDay,
     'reset-everything': handleResetEverything,
+    'export-backup': exportBackup,
+    'import-backup': handleImportBackup,
     'close-heavy-popup': closeHeavyPopup,
     'close-light-popup': closeLightPopup,
     'close-dairy-popup': closeDairyPopup
@@ -502,6 +552,7 @@ function setSetupPanelOpen(panelKey, open) {
   panel.classList.toggle('open', open);
   const toggle = panel.querySelector('.setup-panel-toggle');
   if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (panelKey === 'backup' && !open) disarmImportBackup();
   if (panelKey === 'danger' && !open) disarmResetEverything();
 }
 
@@ -1275,6 +1326,7 @@ function handleResetEverything() {
 
 function performResetEverything() {
   disarmResetEverything();
+  disarmImportBackup();
 
   state.target = null;
   state.budget = null;
@@ -1315,6 +1367,136 @@ function performResetEverything() {
   restoreCountUI();
   updateSetupUI();
   switchTab('setup');
+}
+
+/* ══════════════════════════════════════════
+   BACKUP
+══════════════════════════════════════════ */
+const IMPORT_BTN_LABEL = 'Import backup';
+const IMPORT_BTN_CONFIRM_LABEL = 'Confirm import?';
+let pendingImportPayload = null;
+let importBackupArmed = false;
+
+function describeBackupSummary(normalized) {
+  const mealCount = normalized.meals.length;
+  const mealLabel = mealCount + ' meal' + (mealCount === 1 ? '' : 's');
+  return normalized.budget ? mealLabel + ', budget configured' : mealLabel + ', no budget';
+}
+
+function setImportBackupStatus(message, isError) {
+  const status = document.getElementById('import-backup-status');
+  if (!status) return;
+  status.hidden = !message;
+  status.textContent = message || '';
+  status.classList.toggle('error-msg', !!isError);
+  status.classList.toggle('setup-import-status', !isError);
+}
+
+function disarmImportBackup() {
+  pendingImportPayload = null;
+  importBackupArmed = false;
+  const btn = document.getElementById('import-backup-btn');
+  if (btn) {
+    btn.textContent = IMPORT_BTN_LABEL;
+    btn.classList.remove('setup-reset-btn-armed');
+  }
+  setImportBackupStatus('');
+}
+
+function exportBackup() {
+  const payload = {
+    format: EXPORT_FORMAT,
+    formatVersion: EXPORT_FORMAT_VERSION,
+    appVersion: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: getPersistentState()
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const date = new Date().toISOString().slice(0, 10);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'handful-backup-' + date + '.json';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function triggerImportBackupPicker() {
+  const input = document.getElementById('import-backup-input');
+  if (input) input.click();
+}
+
+function handleImportBackup() {
+  if (importBackupArmed) {
+    performImportBackup();
+    return;
+  }
+  triggerImportBackupPicker();
+}
+
+function handleImportBackupFile(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function() {
+    let parsed;
+    try {
+      parsed = JSON.parse(reader.result);
+    } catch (error) {
+      disarmImportBackup();
+      setImportBackupStatus('Invalid JSON file.', true);
+      return;
+    }
+
+    const normalized = normalizeSavedState(parsed);
+    if (!normalized) {
+      disarmImportBackup();
+      setImportBackupStatus('Unrecognized backup file.', true);
+      return;
+    }
+
+    pendingImportPayload = normalized;
+    importBackupArmed = true;
+    const btn = document.getElementById('import-backup-btn');
+    if (btn) {
+      btn.textContent = IMPORT_BTN_CONFIRM_LABEL;
+      btn.classList.add('setup-reset-btn-armed');
+    }
+    setImportBackupStatus('Ready to import: ' + describeBackupSummary(normalized) + '. This replaces all current data.');
+  };
+  reader.onerror = function() {
+    disarmImportBackup();
+    setImportBackupStatus('Could not read the selected file.', true);
+  };
+  reader.readAsText(file);
+}
+
+function performImportBackup() {
+  if (!pendingImportPayload) {
+    disarmImportBackup();
+    return;
+  }
+
+  state = {
+    ...state,
+    ...pendingImportPayload,
+    portions: state.portions,
+    macroG: state.macroG
+  };
+
+  if (pendingImportPayload.weight === undefined) delete state.weight;
+
+  migrateTargetHistory();
+  historyExpandedDays.clear();
+  setupWizardOpen = false;
+
+  disarmImportBackup();
+  saveState();
+  syncUIAfterStateChange();
+  switchTab('today');
 }
 
 /* ══════════════════════════════════════════
@@ -1515,6 +1697,12 @@ const versionEl = document.getElementById('app-version');
 if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
 
 document.addEventListener('click', handleAppClick);
+
+const importBackupInput = document.getElementById('import-backup-input');
+if (importBackupInput) {
+  importBackupInput.addEventListener('change', handleImportBackupFile);
+}
+
 loadState();
 ensureBudget();
 restoreProfileUI();
