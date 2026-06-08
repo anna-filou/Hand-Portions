@@ -799,15 +799,13 @@ function getDayKcalByType(meals) {
   return kcalByType;
 }
 
-function getHistoryDayData(meals, target) {
+function getHistoryDayData(meals) {
   const kcalByType = getDayKcalByType(meals);
   const totalKcal = PORTION_TYPES.reduce(function(sum, type) {
     return sum + kcalByType[type];
   }, 0);
-  const consumedLo = Math.round(totalKcal * 0.95);
-  const isOver = target > 0 && totalKcal > 0 && consumedLo > target;
 
-  return { kcalByType: kcalByType, totalKcal: totalKcal, isOver: isOver };
+  return { kcalByType: kcalByType, totalKcal: totalKcal };
 }
 
 function getHistoryChartScaleMax(dayEntries) {
@@ -841,7 +839,7 @@ function renderHistoryChart() {
       date: date,
       dayStr: dayStr,
       dayTarget: dayTarget,
-      data: getHistoryDayData(meals, dayTarget || 0)
+      data: getHistoryDayData(meals)
     };
   });
 
@@ -870,7 +868,7 @@ function renderHistoryChart() {
     dayEl.className = 'history-chart-day' + (isToday ? ' today' : '');
 
     const barWrap = document.createElement('div');
-    barWrap.className = 'history-chart-bar-wrap' + (entry.data.isOver ? ' over' : '');
+    barWrap.className = 'history-chart-bar-wrap';
 
     const bar = document.createElement('div');
     bar.className = 'history-chart-bar';
@@ -945,18 +943,18 @@ function renderPortionCards(container, logged, targets) {
       const target = targets[row.key] || 0;
       const eaten = Math.min(count, target);
       const remaining = Math.max(0, target - count);
-      const over = Math.max(0, count - target);
+      const extra = Math.max(0, count - target);
       for (let i = 0; i < eaten; i++) dotsHtml += '<span class="pt-dot eaten"></span>';
       for (let i = 0; i < remaining; i++) dotsHtml += '<span class="pt-dot left"></span>';
-      for (let i = 0; i < over; i++) dotsHtml += '<span class="pt-dot over"></span>';
+      for (let i = 0; i < extra; i++) dotsHtml += '<span class="pt-dot eaten"></span>';
       fracHtml =
         '<div class="pt-frac">' +
           '<span class="pt-frac-eaten ' + row.key + '">' + count + '</span>' +
           '<span class="pt-frac-slash ' + row.key + '">/</span>' +
           '<span class="pt-frac-target ' + row.key + '">' + target + '</span>' +
         '</div>';
-      ariaLabel = row.label + ': ' + count + ' of ' + target + ' ' + row.sub + (over ? ', ' + over + ' over' : '');
-      if (!over && remaining === 0 && target > 0) cardClass += ' complete';
+      ariaLabel = row.label + ': ' + count + ' of ' + target + ' ' + row.sub;
+      if (count >= target && target > 0) cardClass += ' complete';
     } else {
       for (let i = 0; i < count; i++) dotsHtml += '<span class="pt-dot eaten"></span>';
       fracHtml = '<div class="pt-frac"><span class="pt-frac-eaten ' + row.key + '">' + count + '</span></div>';
@@ -985,26 +983,28 @@ function renderPortionRow(container, logged, targets, kcal) {
   PORTION_ROW_META.forEach(function(row) {
     const count = logged[row.key] || 0;
     const target = targets[row.key] || 0;
-    const over = count > target;
-    const complete = !over && count >= target && target > 0;
+    const complete = count >= target && target > 0;
 
     const item = document.createElement('span');
-    item.className = 'history-pt ' + row.key + (over ? ' over' : '') + (complete ? ' complete' : '');
+    item.className = 'history-pt ' + row.key + (complete ? ' complete' : '');
     item.innerHTML =
       '<span class="history-pt-icon" aria-hidden="true">' + row.icon + '</span>' +
-      '<span class="history-pt-frac">' + count + '/' + target + '</span>';
-    labels.push(row.label + ': ' + count + ' of ' + target + (over ? ', over' : ''));
+      '<span class="history-pt-frac">' +
+        '<span class="history-pt-eaten">' + count + '</span>' +
+        '<span class="history-pt-slash">/</span>' +
+        '<span class="history-pt-target">' + target + '</span>' +
+      '</span>';
+    labels.push(row.label + ': ' + count + ' of ' + target);
     container.appendChild(item);
   });
 
   if (kcal) {
     const consumed = Math.round(kcal.consumed);
     const goal = kcal.goal;
-    const over = goal > 0 && consumed > goal;
     const kcalItem = document.createElement('span');
-    kcalItem.className = 'history-kcal' + (over ? ' over' : '');
+    kcalItem.className = 'history-kcal';
     kcalItem.innerHTML = '<span class="history-kcal-frac">' + consumed + '/' + goal + '</span>';
-    labels.push('Calories: ' + consumed + ' of ' + goal + (over ? ', over' : ''));
+    labels.push('Calories: ' + consumed + ' of ' + goal);
     container.appendChild(kcalItem);
   }
 
@@ -1103,7 +1103,6 @@ function renderToday() {
   const rawPct = goalKcal > 0 ? Math.round((totalKcal / goalKcal) * 100) : 0;
   const pct = isOverTarget || rawPct >= 100 ? 100 : Math.min(100, rawPct);
   const fill = document.getElementById('prog-fill');
-  const bar = document.getElementById('prog-bar');
 
   document.getElementById('prog-consumed').textContent =
     totalKcal === 0 ? '0' : consumedLo + '–' + consumedHi;
@@ -1120,18 +1119,12 @@ function renderToday() {
   if (consumedHi < goalKcal) {
     const rem = goalKcal - consumedHi;
     leftEl.textContent = rem + ' left';
-    leftEl.classList.remove('over');
-    bar.classList.remove('over');
     fill.classList.remove('full');
   } else if (consumedLo <= goalKcal) {
     leftEl.textContent = 'on target';
-    leftEl.classList.remove('over');
-    bar.classList.remove('over');
     fill.classList.toggle('full', rawPct >= 100);
   } else {
-    leftEl.textContent = (consumedLo - goalKcal) + ' over';
-    leftEl.classList.add('over');
-    bar.classList.add('over');
+    leftEl.textContent = '—';
     fill.classList.add('full');
   }
 
