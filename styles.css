@@ -502,6 +502,11 @@
     font-family: 'DM Mono', monospace;
     font-size: 13px;
     color: var(--text-dim);
+    transition: opacity 0.15s ease;
+  }
+
+  .portion-kcal.is-zero {
+    opacity: 0.4;
   }
 
   /* ── Log button ── */
@@ -875,9 +880,14 @@
     margin-bottom: 12px;
   }
 
+  #log-content .quick-add-grid {
+    gap: 10px;
+  }
+
   #log-content .quick-btn {
     background: var(--surface);
     border: none;
+    padding: 14px;
   }
 
   #log-content .quick-btn:hover {

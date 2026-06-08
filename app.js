@@ -509,7 +509,9 @@ function updatePortionKcals() {
   const types = ['protein', 'veggie', 'carb', 'fat'];
   types.forEach(t => {
     const c = state.counts[t];
-    document.getElementById(t + '-kcal').textContent = (c * p[t]) + ' kcal';
+    const kcalEl = document.getElementById(t + '-kcal');
+    kcalEl.textContent = (c * p[t]) + ' kcal';
+    kcalEl.classList.toggle('is-zero', c === 0);
   });
 }
 
@@ -713,7 +715,7 @@ function renderToday() {
   const leftEl = document.getElementById('prog-left');
   if (consumedHi < goalKcal) {
     const rem = goalKcal - consumedHi;
-    leftEl.textContent = rem + ' kcal left';
+    leftEl.textContent = rem + ' left';
     leftEl.classList.remove('over');
     bar.classList.remove('over');
     fill.classList.remove('full');
@@ -723,7 +725,7 @@ function renderToday() {
     bar.classList.remove('over');
     fill.classList.toggle('full', rawPct >= 100);
   } else {
-    leftEl.textContent = (consumedLo - goalKcal) + ' kcal over';
+    leftEl.textContent = (consumedLo - goalKcal) + ' over';
     leftEl.classList.add('over');
     bar.classList.add('over');
     fill.classList.add('full');
