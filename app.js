@@ -24,11 +24,13 @@ let state = {
     age: '',
     bodyfat: '',
     activity: '1.55'
-  }
+  },
+  dynamicRecalc: false
 };
 
 const STORAGE_KEY = 'handful-state-v1';
 const PORTION_TYPES = ['protein', 'veggie', 'carb', 'fat'];
+const DYNAMIC_CUT_ORDER = ['fat', 'protein', 'carb'];
 const HAND_SIZES = ['small', 'average', 'big'];
 let setupWizardOpen = false;
 
@@ -84,7 +86,8 @@ function loadState() {
       profile: {
         ...state.profile,
         ...(isObject(savedState.profile) ? savedState.profile : {})
-      }
+      },
+      dynamicRecalc: savedState.dynamicRecalc === true
     };
   } catch (error) {
     console.warn('Unable to load saved Handful state.', error);
@@ -101,7 +104,8 @@ function saveState() {
       meals: state.meals,
       goalMult: state.goalMult,
       weight: state.weight,
-      profile: state.profile
+      profile: state.profile,
+      dynamicRecalc: state.dynamicRecalc
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persistentState));
@@ -132,13 +136,25 @@ function handleAppClick(event) {
     return;
   }
 
+  const setupPanelToggle = event.target.closest('[data-setup-panel]');
+  if (setupPanelToggle) {
+    toggleSetupPanel(setupPanelToggle.dataset.setupPanel);
+    return;
+  }
+
   const goalButton = event.target.closest('.goal-option');
   if (goalButton) {
     selectGoal(goalButton);
     return;
   }
 
-  const handButton = event.target.closest('.toggle-option');
+  const dynamicRecalcButton = event.target.closest('[data-dynamic-recalc]');
+  if (dynamicRecalcButton) {
+    setDynamicRecalc(dynamicRecalcButton.dataset.dynamicRecalc === 'true');
+    return;
+  }
+
+  const handButton = event.target.closest('.toggle-option[data-hand]');
   if (handButton) {
     selectHand(handButton);
     return;
@@ -333,16 +349,83 @@ function getEffectiveTarget() {
   return budgetTotalKcal();
 }
 
+function calcEffectiveBudget(logged) {
+  const base = state.budget || cleanCounts({});
+  if (!state.dynamicRecalc) return base;
+
+  const p = state.portions[state.handSize];
+  const dailyTarget = getEffectiveTarget();
+  const consumedKcal = PORTION_TYPES.reduce(
+    (sum, type) => sum + (logged[type] || 0) * p[type],
+    0
+  );
+  const remainingKcal = dailyTarget - consumedKcal;
+  const effective = { ...base };
+
+  if (remainingKcal <= 0) {
+    DYNAMIC_CUT_ORDER.forEach((type) => {
+      const loggedCount = logged[type] || 0;
+      effective[type] = loggedCount >= base[type] ? base[type] : loggedCount;
+    });
+    return effective;
+  }
+
+  let deficitKcal = 0;
+  PORTION_TYPES.forEach((type) => {
+    const over = Math.max(0, (logged[type] || 0) - base[type]);
+    deficitKcal += over * p[type];
+  });
+
+  if (deficitKcal <= 0) return base;
+
+  let deficit = deficitKcal;
+  DYNAMIC_CUT_ORDER.forEach((type) => {
+    if (deficit <= 0) return;
+    const minTarget = logged[type] || 0;
+    const maxCut = Math.max(0, effective[type] - minTarget);
+    const cutPortions = Math.min(maxCut, Math.floor(deficit / p[type]));
+    if (cutPortions > 0) {
+      effective[type] -= cutPortions;
+      deficit -= cutPortions * p[type];
+    }
+  });
+
+  return effective;
+}
+
+function setDynamicRecalc(enabled) {
+  state.dynamicRecalc = enabled;
+  saveState();
+  updateSetupUI();
+  if (document.getElementById('section-today').classList.contains('active')) renderToday();
+}
+
+function setSetupPanelOpen(panelKey, open) {
+  const panel = document.getElementById('setup-panel-' + panelKey);
+  if (!panel || panel.hidden) return;
+
+  panel.classList.toggle('open', open);
+  const toggle = panel.querySelector('.setup-panel-toggle');
+  if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function toggleSetupPanel(panelKey) {
+  const panel = document.getElementById('setup-panel-' + panelKey);
+  if (!panel || panel.hidden) return;
+  setSetupPanelOpen(panelKey, !panel.classList.contains('open'));
+}
+
 function updateSetupBudgetUI() {
+  const panel = document.getElementById('setup-panel-budget');
   const wrap = document.getElementById('setup-budget');
-  if (!wrap) return;
+  if (!panel || !wrap) return;
 
   if (!state.target || !state.budget) {
-    wrap.hidden = true;
+    panel.hidden = true;
     return;
   }
 
-  wrap.hidden = false;
+  panel.hidden = false;
   const p = state.portions[state.handSize];
 
   PORTION_TYPES.forEach((type) => {
@@ -371,11 +454,20 @@ function updateSetupUI() {
     if (cancelBtn) cancelBtn.hidden = !setupWizardOpen;
   }
 
+  if (!hasTarget || setupWizardOpen) {
+    setSetupPanelOpen('calculator', true);
+  }
+
   updateSetupBudgetUI();
+
+  document.querySelectorAll('[data-dynamic-recalc]').forEach((el) => {
+    el.classList.toggle('selected', el.dataset.dynamicRecalc === String(state.dynamicRecalc));
+  });
 }
 
 function openSetupWizard() {
   setupWizardOpen = true;
+  setSetupPanelOpen('calculator', true);
   updateSetupUI();
 }
 
@@ -601,7 +693,9 @@ function renderToday() {
   const goalKcal = getEffectiveTarget();
   const consumedLo = Math.round(totalKcal * 0.95);
   const consumedHi = Math.round(totalKcal * 1.05);
-  const pct = goalKcal > 0 ? Math.min(100, Math.round((totalKcal / goalKcal) * 100)) : 0;
+  const isOverTarget = goalKcal > 0 && consumedLo > goalKcal;
+  const rawPct = goalKcal > 0 ? Math.round((totalKcal / goalKcal) * 100) : 0;
+  const pct = isOverTarget || rawPct >= 100 ? 100 : Math.min(100, rawPct);
   const fill = document.getElementById('prog-fill');
   const bar = document.getElementById('prog-bar');
 
@@ -611,28 +705,37 @@ function renderToday() {
   fill.style.width = pct + '%';
 
   ['protein', 'veggie', 'carb', 'fat'].forEach(function(k) {
-    const segPct = totalKcal > 0 ? (kcalByType[k] / totalKcal) * 100 : 0;
-    document.getElementById('prog-seg-' + k).style.width = segPct + '%';
+    const seg = document.getElementById('prog-seg-' + k);
+    seg.style.flex = totalKcal > 0 ? (kcalByType[k] + ' 1 0') : '0 0 0';
+    seg.style.width = '';
   });
 
-  const remEl = document.getElementById('prog-remaining');
+  const leftEl = document.getElementById('prog-left');
   if (consumedHi < goalKcal) {
     const rem = goalKcal - consumedHi;
-    remEl.textContent = rem + ' kcal below target';
-    remEl.classList.remove('over');
+    leftEl.textContent = rem + ' kcal left';
+    leftEl.classList.remove('over');
     bar.classList.remove('over');
+    fill.classList.remove('full');
   } else if (consumedLo <= goalKcal) {
-    remEl.textContent = '✓ on target';
-    remEl.classList.remove('over');
+    leftEl.textContent = 'on target';
+    leftEl.classList.remove('over');
     bar.classList.remove('over');
+    fill.classList.toggle('full', rawPct >= 100);
   } else {
-    remEl.textContent = (consumedLo - goalKcal) + ' kcal over target';
-    remEl.classList.add('over');
+    leftEl.textContent = (consumedLo - goalKcal) + ' kcal over';
+    leftEl.classList.add('over');
     bar.classList.add('over');
+    fill.classList.add('full');
   }
 
-  // Portion targets
-  var goals = state.budget;
+  // Portion targets — shrink when dynamic recalc is on and another type overshot
+  var goals = calcEffectiveBudget({
+    protein: portionP,
+    veggie: portionV,
+    carb: portionC,
+    fat: portionFt
+  });
   const rows = [
     { key: 'protein', icon: '🥩', label: 'Protein', sub: 'palms', logged: portionP, target: goals.protein },
     { key: 'veggie', icon: '🥦', label: 'Veggies', sub: 'fists',  logged: portionV,  target: goals.veggie },
@@ -642,12 +745,28 @@ function renderToday() {
   const ptContainer = document.getElementById('portion-targets');
   ptContainer.innerHTML = '';
   rows.forEach(function(r) {
+    const eaten = Math.min(r.logged, r.target);
+    const remaining = Math.max(0, r.target - r.logged);
+    const over = Math.max(0, r.logged - r.target);
+    let dotsHtml = '<div class="pt-dots" aria-hidden="true">';
+    for (let i = 0; i < eaten; i++) dotsHtml += '<span class="pt-dot eaten"></span>';
+    for (let i = 0; i < remaining; i++) dotsHtml += '<span class="pt-dot left"></span>';
+    for (let i = 0; i < over; i++) dotsHtml += '<span class="pt-dot over"></span>';
+    dotsHtml += '</div>';
+
     var div = document.createElement('div');
-    div.className = 'pt-card ' + r.key;
+    div.className = 'pt-card ' + r.key + (!over && remaining === 0 && r.target > 0 ? ' complete' : '');
+    div.setAttribute(
+      'aria-label',
+      r.label + ': ' + r.logged + ' of ' + r.target + ' ' + r.sub + (over ? ', ' + over + ' over' : '')
+    );
     div.innerHTML =
-      '<div class="pt-icon">' + r.icon + '</div>' +
-      '<div class="pt-label ' + r.key + '">' + r.label + '</div>' +
-      '<div class="pt-portions">' + r.logged + '/' + r.target + ' ' + r.sub + '</div>';
+      '<div class="pt-head">' +
+        '<div class="pt-icon">' + r.icon + '</div>' +
+        '<div class="pt-label ' + r.key + '">' + r.label + '</div>' +
+        '<div class="pt-frac"><span class="pt-frac-eaten ' + r.key + '">' + r.logged + '</span><span class="pt-frac-slash ' + r.key + '">/</span><span class="pt-frac-target ' + r.key + '">' + r.target + '</span></div>' +
+      '</div>' +
+      dotsHtml;
     ptContainer.appendChild(div);
   });
 

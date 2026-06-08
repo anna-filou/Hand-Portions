@@ -27,8 +27,14 @@
       <div class="logo">✦ handful<em>hand portion calorie tracker</em></div>
     </div>
 
-    <div id="setup-budget" class="card" hidden>
-      <div class="card-title"><span>📊</span> Daily Portion Budget</div>
+    <div class="setup-accordion">
+
+    <section class="setup-panel" id="setup-panel-budget" hidden>
+      <button class="setup-panel-toggle" type="button" data-setup-panel="budget" aria-expanded="false" aria-controls="setup-budget">
+        <span class="setup-panel-title"><span>📊</span> Daily Portion Budget</span>
+        <span class="setup-panel-chevron" aria-hidden="true"></span>
+      </button>
+      <div class="setup-panel-body" id="setup-budget">
       <div class="meal-total-summary budget-total-summary">
         <span class="meal-total-label">Estimated total</span>
         <span class="meal-total-value" id="budget-total">0 kcal</span>
@@ -106,13 +112,15 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <div id="setup-hand-size" class="card">
-      <div class="card-title"><span>✋</span> Hand Size</div>
-      <div class="info-callout callout-tight">
-        Your hand size scales portion calorie values. <strong>Average hand</strong> uses the midpoint of PN's male/female ranges. Big or small shifts the values up or down accordingly.
       </div>
+    </section>
+
+    <section class="setup-panel" id="setup-panel-hand">
+      <button class="setup-panel-toggle" type="button" data-setup-panel="hand" aria-expanded="false" aria-controls="setup-hand-size">
+        <span class="setup-panel-title"><span>✋</span> Hand Size</span>
+        <span class="setup-panel-chevron" aria-hidden="true"></span>
+      </button>
+      <div class="setup-panel-body" id="setup-hand-size">
       <div class="toggle-group" id="hand-size">
         <button class="toggle-option" data-hand="small">
           <div class="opt-title">🤏 Small</div>
@@ -127,10 +135,32 @@
           <div class="opt-sub">Palm ~145 kcal</div>
         </button>
       </div>
-    </div>
+      <p class="setup-recalc-hint">Your hand size scales portion calorie values. <strong>Medium hand</strong> uses the midpoint of PN's male/female ranges. Big or small shifts the values up or down accordingly.</p>
+      </div>
+    </section>
 
-    <div id="setup-recalc-wrap" class="setup-recalc-wrap" hidden>
-      <p class="setup-recalc-hint">Need a fresh starting budget? Re-run the body-stats calculator — you can still fine-tune portions afterward.</p>
+    <section class="setup-panel" id="setup-panel-dynamic">
+      <button class="setup-panel-toggle" type="button" data-setup-panel="dynamic" aria-expanded="false" aria-controls="setup-dynamic-recalc">
+        <span class="setup-panel-title"><span>⚖️</span> Dynamic budgets</span>
+        <span class="setup-panel-chevron" aria-hidden="true"></span>
+      </button>
+      <div class="setup-panel-body" id="setup-dynamic-recalc">
+      <div class="toggle-group" id="dynamic-recalc-toggle">
+        <button type="button" class="toggle-option" data-dynamic-recalc="true">Enable</button>
+        <button type="button" class="toggle-option selected" data-dynamic-recalc="false">Disable</button>
+      </div>
+      <p class="setup-recalc-hint">When you overshoot a portion type, remaining budgets shrink to fit your daily calorie target — fats first, then protein, then carbs. Vegetables are never reduced. If you exceed your daily calories, uneaten non-veggie portions drop to zero.</p>
+      </div>
+    </section>
+
+    <section class="setup-panel" id="setup-panel-calculator">
+      <button class="setup-panel-toggle" type="button" data-setup-panel="calculator" aria-expanded="false" aria-controls="setup-calculator-body">
+        <span class="setup-panel-title"><span>🧮</span> Body stats calculator</span>
+        <span class="setup-panel-chevron" aria-hidden="true"></span>
+      </button>
+      <div class="setup-panel-body" id="setup-calculator-body">
+    <div id="setup-recalc-wrap" hidden>
+      <p class="setup-recalc-hint">Need a fresh starting budget? Re-run the calculator with updated weight, activity, or goal — you can still fine-tune portions afterward.</p>
       <button class="btn btn-ghost" data-action="open-setup-wizard">Recalculate from body stats</button>
     </div>
 
@@ -208,6 +238,10 @@
       <button class="btn btn-ghost setup-demo-btn" data-action="use-demo">Use demo values</button>
       <button class="btn btn-primary" data-action="calculate-target">Calculate starting budget →</button>
       <button class="btn btn-ghost setup-wizard-cancel" data-action="close-setup-wizard" hidden>Cancel</button>
+    </div>
+      </div>
+    </section>
+
     </div>
 
   </div>
@@ -374,13 +408,12 @@
 
       <div class="progress-wrap">
         <div class="progress-header">
-          <div class="progress-title">Daily Progress</div>
-          <div class="progress-nums">
+          <div class="progress-range">
             <span class="progress-consumed" id="prog-consumed">0</span>
             <span class="progress-sep">/</span>
             <span class="progress-total" id="prog-total">0</span>
-            <span class="progress-sep progress-kcal-label">kcal</span>
           </div>
+          <span class="progress-left" id="prog-left">— kcal left</span>
         </div>
         <div class="progress-bar" id="prog-bar">
           <div class="progress-fill" id="prog-fill">
@@ -390,7 +423,6 @@
             <div class="progress-seg fat" id="prog-seg-fat"></div>
           </div>
         </div>
-        <div class="progress-remaining" id="prog-remaining">— kcal remaining</div>
       </div>
 
       <div class="card">
