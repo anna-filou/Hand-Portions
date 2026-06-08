@@ -749,9 +749,48 @@ function restoreCountUI() {
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
+  let refreshing = false;
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  function watchForUpdates(registration) {
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+  }
+
+  function checkForUpdates(registration) {
+    registration.update().catch((error) => {
+      console.warn('Service worker update check failed.', error);
+    });
+  }
+
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('./service-worker.js')
+      .register(`./service-worker.js?v=${APP_VERSION}`, { updateViaCache: 'none' })
+      .then((registration) => {
+        watchForUpdates(registration);
+        checkForUpdates(registration);
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            checkForUpdates(registration);
+          }
+        });
+
+        window.setInterval(() => checkForUpdates(registration), 60 * 60 * 1000);
+      })
       .catch((error) => console.warn('Service worker registration failed.', error));
   });
 }
