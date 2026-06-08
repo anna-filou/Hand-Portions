@@ -15,6 +15,7 @@
 <div id="app">
 
   <div class="tabs">
+    <button class="tab" data-tab="history">History</button>
     <button class="tab" data-tab="today">Today</button>
     <button class="tab" data-tab="log">Log Meal</button>
     <button class="tab" data-tab="setup">Settings</button>
@@ -426,7 +427,7 @@
       </div>
 
       <div class="card">
-        <div id="portion-targets">
+        <div id="portion-targets" class="portion-targets">
           <!-- rendered by JS -->
         </div>
       </div>
@@ -439,6 +440,19 @@
           </div>
         </div>
       </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════ HISTORY ═══════════════════ -->
+  <div id="section-history" class="section">
+
+    <div id="history-no-target" class="info-callout">
+      ⚠ No calorie target set yet. Go to <strong>Setup</strong> first.
+    </div>
+
+    <div id="history-content">
+      <div id="history-list"></div>
     </div>
 
   </div>

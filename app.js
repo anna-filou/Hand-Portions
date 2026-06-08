@@ -33,6 +33,7 @@ const PORTION_TYPES = ['protein', 'veggie', 'carb', 'fat'];
 const DYNAMIC_CUT_ORDER = ['fat', 'protein', 'carb'];
 const HAND_SIZES = ['small', 'average', 'big'];
 let setupWizardOpen = false;
+const historyExpandedDays = new Set();
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -121,12 +122,23 @@ function switchTab(tab) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('section-' + tab).classList.add('active');
-  const tabs = ['today', 'log', 'setup'];
-  document.querySelectorAll('.tab')[tabs.indexOf(tab)].classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
 
   if (tab === 'today') renderToday();
+  if (tab === 'history') renderHistory();
   if (tab === 'log') updateLogUI();
   if (tab === 'setup') updateSetupUI();
+}
+
+function isSectionActive(sectionId) {
+  return document.getElementById(sectionId).classList.contains('active');
+}
+
+function refreshDayViews() {
+  if (isSectionActive('section-today')) renderToday();
+  if (isSectionActive('section-history')) renderHistory();
 }
 
 function handleAppClick(event) {
@@ -190,6 +202,12 @@ function handleAppClick(event) {
     return;
   }
 
+  const historyDayButton = event.target.closest('[data-history-day]');
+  if (historyDayButton) {
+    toggleHistoryDay(historyDayButton.dataset.historyDay);
+    return;
+  }
+
   const deleteMealButton = event.target.closest('[data-delete-meal-index]');
   if (deleteMealButton) {
     deleteMeal(Number(deleteMealButton.dataset.deleteMealIndex));
@@ -237,7 +255,7 @@ function selectGoal(el) {
   el.classList.add('selected');
   state.goalMult = parseFloat(el.dataset.mult);
   saveState();
-  if (document.getElementById('section-today').classList.contains('active')) renderToday();
+  refreshDayViews();
 }
 
 function selectHand(el) {
@@ -248,7 +266,7 @@ function selectHand(el) {
   updateMealTotal();
   updateSetupUI();
   saveState();
-  if (document.getElementById('section-today').classList.contains('active')) renderToday();
+  refreshDayViews();
 }
 
 // Update formula display hint
@@ -397,7 +415,7 @@ function setDynamicRecalc(enabled) {
   state.dynamicRecalc = enabled;
   saveState();
   updateSetupUI();
-  if (document.getElementById('section-today').classList.contains('active')) renderToday();
+  refreshDayViews();
 }
 
 function setSetupPanelOpen(panelKey, open) {
@@ -484,7 +502,7 @@ function changeBudget(type, delta) {
   state.budget[type] = Math.max(0, (state.budget[type] || 0) + delta);
   updateSetupUI();
   saveState();
-  if (document.getElementById('section-today').classList.contains('active')) renderToday();
+  refreshDayViews();
 }
 
 /* ══════════════════════════════════════════
@@ -647,8 +665,193 @@ function calcGoalPortions(weight, goalMult, targetKcal, handSize) {
 }
 
 /* ══════════════════════════════════════════
-   TODAY
+   TODAY & HISTORY
 ══════════════════════════════════════════ */
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MEAL_ICONS = { protein: '🥩', veggie: '🥦', carb: '🌾', fat: '🥑' };
+const PORTION_ROW_META = [
+  { key: 'protein', icon: '🥩', label: 'Protein', sub: 'palms' },
+  { key: 'veggie', icon: '🥦', label: 'Veggies', sub: 'fists' },
+  { key: 'carb', icon: '🌾', label: 'Carbs', sub: 'handfuls' },
+  { key: 'fat', icon: '🥑', label: 'Fats', sub: 'thumbs' }
+];
+
+function formatDateLabel(date) {
+  return `${DAY_NAMES[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function formatShortDate(date) {
+  return `${DAY_NAMES[date.getDay()].slice(0, 3)}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function getMealsForDay(dayStr) {
+  return state.meals.filter(m => new Date(m.timestamp).toDateString() === dayStr);
+}
+
+function sumMealTotals(meals) {
+  const totals = { protein: 0, veggie: 0, carb: 0, fat: 0, kcal: 0 };
+  meals.forEach(function(m) {
+    totals.kcal += m.kcal;
+    PORTION_TYPES.forEach(function(type) {
+      totals[type] += m.portions[type];
+    });
+  });
+  return totals;
+}
+
+function groupMealsByDay() {
+  const groups = new Map();
+  state.meals.forEach(function(meal) {
+    const dayStr = new Date(meal.timestamp).toDateString();
+    if (!groups.has(dayStr)) groups.set(dayStr, []);
+    groups.get(dayStr).push(meal);
+  });
+
+  return Array.from(groups.entries())
+    .sort(function(a, b) { return new Date(b[0]) - new Date(a[0]); })
+    .map(function(entry) {
+      return {
+        dayStr: entry[0],
+        date: new Date(entry[0]),
+        meals: entry[1].sort(function(a, b) { return a.timestamp - b.timestamp; })
+      };
+    });
+}
+
+function renderPortionCards(container, logged, targets) {
+  container.innerHTML = '';
+  PORTION_ROW_META.forEach(function(row) {
+    const count = logged[row.key] || 0;
+    let dotsHtml = '<div class="pt-dots" aria-hidden="true">';
+    let fracHtml;
+    let ariaLabel;
+    let cardClass = 'pt-card ' + row.key;
+
+    if (targets) {
+      const target = targets[row.key] || 0;
+      const eaten = Math.min(count, target);
+      const remaining = Math.max(0, target - count);
+      const over = Math.max(0, count - target);
+      for (let i = 0; i < eaten; i++) dotsHtml += '<span class="pt-dot eaten"></span>';
+      for (let i = 0; i < remaining; i++) dotsHtml += '<span class="pt-dot left"></span>';
+      for (let i = 0; i < over; i++) dotsHtml += '<span class="pt-dot over"></span>';
+      fracHtml =
+        '<div class="pt-frac">' +
+          '<span class="pt-frac-eaten ' + row.key + '">' + count + '</span>' +
+          '<span class="pt-frac-slash ' + row.key + '">/</span>' +
+          '<span class="pt-frac-target ' + row.key + '">' + target + '</span>' +
+        '</div>';
+      ariaLabel = row.label + ': ' + count + ' of ' + target + ' ' + row.sub + (over ? ', ' + over + ' over' : '');
+      if (!over && remaining === 0 && target > 0) cardClass += ' complete';
+    } else {
+      for (let i = 0; i < count; i++) dotsHtml += '<span class="pt-dot eaten"></span>';
+      fracHtml = '<div class="pt-frac"><span class="pt-frac-eaten ' + row.key + '">' + count + '</span></div>';
+      ariaLabel = row.label + ': ' + count + ' ' + row.sub;
+    }
+    dotsHtml += '</div>';
+
+    const card = document.createElement('div');
+    card.className = cardClass;
+    card.setAttribute('aria-label', ariaLabel);
+    card.innerHTML =
+      '<div class="pt-head">' +
+        '<div class="pt-icon">' + row.icon + '</div>' +
+        '<div class="pt-label ' + row.key + '">' + row.label + '</div>' +
+        fracHtml +
+      '</div>' +
+      dotsHtml;
+    container.appendChild(card);
+  });
+}
+
+function renderPortionRow(container, logged, targets, kcal) {
+  container.innerHTML = '';
+  const labels = [];
+
+  PORTION_ROW_META.forEach(function(row) {
+    const count = logged[row.key] || 0;
+    const target = targets[row.key] || 0;
+    const over = count > target;
+    const complete = !over && count >= target && target > 0;
+
+    const item = document.createElement('span');
+    item.className = 'history-pt ' + row.key + (over ? ' over' : '') + (complete ? ' complete' : '');
+    item.innerHTML =
+      '<span class="history-pt-icon" aria-hidden="true">' + row.icon + '</span>' +
+      '<span class="history-pt-frac">' + count + '/' + target + '</span>';
+    labels.push(row.label + ': ' + count + ' of ' + target + (over ? ', over' : ''));
+    container.appendChild(item);
+  });
+
+  if (kcal) {
+    const consumed = Math.round(kcal.consumed);
+    const goal = kcal.goal;
+    const over = goal > 0 && consumed > goal;
+    const kcalItem = document.createElement('span');
+    kcalItem.className = 'history-kcal' + (over ? ' over' : '');
+    kcalItem.innerHTML = '<span class="history-kcal-frac">' + consumed + '/' + goal + '</span>';
+    labels.push('Calories: ' + consumed + ' of ' + goal + (over ? ', over' : ''));
+    container.appendChild(kcalItem);
+  }
+
+  container.setAttribute('aria-label', labels.join(', '));
+}
+
+function renderMealList(container, meals, options) {
+  const deletable = options && options.deletable;
+  const emptyMessage = (options && options.emptyMessage) || 'No meals logged.';
+  container.innerHTML = '';
+
+  if (meals.length === 0) {
+    container.innerHTML =
+      '<div class="empty-state"><div class="icon">🍽</div><div>' + emptyMessage + '</div></div>';
+    return;
+  }
+
+  meals.forEach(function(meal, index) {
+    const time = new Date(meal.timestamp);
+    const hh = String(time.getHours()).padStart(2, '0');
+    const mm = String(time.getMinutes()).padStart(2, '0');
+    let emojiStr = '';
+    PORTION_TYPES.forEach(function(type) {
+      const n = meal.portions[type];
+      if (n > 0) emojiStr += (emojiStr ? ' ' : '') + MEAL_ICONS[type].repeat(n);
+    });
+
+    const entry = document.createElement('div');
+    entry.className = 'meal-entry';
+
+    const left = document.createElement('div');
+    const timeEl = document.createElement('div');
+    timeEl.className = 'meal-entry-time';
+    timeEl.textContent = hh + ':' + mm;
+    const portionsEl = document.createElement('div');
+    portionsEl.className = 'meal-entry-portions';
+    portionsEl.textContent = emojiStr;
+    left.appendChild(timeEl);
+    left.appendChild(portionsEl);
+
+    const kcalEl = document.createElement('div');
+    kcalEl.className = 'meal-entry-kcal';
+    kcalEl.textContent = meal.kcal + ' kcal';
+
+    entry.appendChild(left);
+    entry.appendChild(kcalEl);
+
+    if (deletable) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'meal-delete';
+      delBtn.title = 'Delete';
+      delBtn.textContent = '✕';
+      delBtn.dataset.deleteMealIndex = index;
+      entry.appendChild(delBtn);
+    }
+
+    container.appendChild(entry);
+  });
+}
+
 function renderToday() {
   const noTarget = document.getElementById('today-no-target');
   const content = document.getElementById('today-content');
@@ -662,31 +865,19 @@ function renderToday() {
   noTarget.style.display = 'none';
   content.style.display = 'block';
 
-  // Date
   const now = new Date();
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  document.getElementById('today-date-str').textContent =
-    `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('today-date-str').textContent = formatDateLabel(now);
   document.getElementById('today-day-str').textContent = 'Today';
 
-  // Filter today's meals
   const todayStr = now.toDateString();
-  const todayMeals = state.meals.filter(m => new Date(m.timestamp).toDateString() === todayStr);
-
-  // Totals
-  var p = state.portions[state.handSize];
-  let totalKcal = 0;
-  let portionP = 0, portionV = 0, portionC = 0, portionFt = 0;
+  const todayMeals = getMealsForDay(todayStr);
+  const totals = sumMealTotals(todayMeals);
+  const totalKcal = totals.kcal;
+  const p = state.portions[state.handSize];
   const kcalByType = { protein: 0, veggie: 0, carb: 0, fat: 0 };
 
-  todayMeals.forEach(m => {
-    totalKcal += m.kcal;
-    portionP  += m.portions.protein;
-    portionV  += m.portions.veggie;
-    portionC  += m.portions.carb;
-    portionFt += m.portions.fat;
-    ['protein', 'veggie', 'carb', 'fat'].forEach(function(k) {
+  todayMeals.forEach(function(m) {
+    PORTION_TYPES.forEach(function(k) {
       kcalByType[k] += m.portions[k] * p[k];
     });
   });
@@ -732,96 +923,93 @@ function renderToday() {
   }
 
   // Portion targets — shrink when dynamic recalc is on and another type overshot
-  var goals = calcEffectiveBudget({
-    protein: portionP,
-    veggie: portionV,
-    carb: portionC,
-    fat: portionFt
+  const goals = calcEffectiveBudget({
+    protein: totals.protein,
+    veggie: totals.veggie,
+    carb: totals.carb,
+    fat: totals.fat
   });
-  const rows = [
-    { key: 'protein', icon: '🥩', label: 'Protein', sub: 'palms', logged: portionP, target: goals.protein },
-    { key: 'veggie', icon: '🥦', label: 'Veggies', sub: 'fists',  logged: portionV,  target: goals.veggie },
-    { key: 'carb', icon: '🌾', label: 'Carbs', sub: 'handfuls', logged: portionC, target: goals.carb },
-    { key: 'fat', icon: '🥑', label: 'Fats',    sub: 'thumbs', logged: portionFt, target: goals.fat },
-  ];
-  const ptContainer = document.getElementById('portion-targets');
-  ptContainer.innerHTML = '';
-  rows.forEach(function(r) {
-    const eaten = Math.min(r.logged, r.target);
-    const remaining = Math.max(0, r.target - r.logged);
-    const over = Math.max(0, r.logged - r.target);
-    let dotsHtml = '<div class="pt-dots" aria-hidden="true">';
-    for (let i = 0; i < eaten; i++) dotsHtml += '<span class="pt-dot eaten"></span>';
-    for (let i = 0; i < remaining; i++) dotsHtml += '<span class="pt-dot left"></span>';
-    for (let i = 0; i < over; i++) dotsHtml += '<span class="pt-dot over"></span>';
-    dotsHtml += '</div>';
-
-    var div = document.createElement('div');
-    div.className = 'pt-card ' + r.key + (!over && remaining === 0 && r.target > 0 ? ' complete' : '');
-    div.setAttribute(
-      'aria-label',
-      r.label + ': ' + r.logged + ' of ' + r.target + ' ' + r.sub + (over ? ', ' + over + ' over' : '')
-    );
-    div.innerHTML =
-      '<div class="pt-head">' +
-        '<div class="pt-icon">' + r.icon + '</div>' +
-        '<div class="pt-label ' + r.key + '">' + r.label + '</div>' +
-        '<div class="pt-frac"><span class="pt-frac-eaten ' + r.key + '">' + r.logged + '</span><span class="pt-frac-slash ' + r.key + '">/</span><span class="pt-frac-target ' + r.key + '">' + r.target + '</span></div>' +
-      '</div>' +
-      dotsHtml;
-    ptContainer.appendChild(div);
+  renderPortionCards(document.getElementById('portion-targets'), totals, goals);
+  renderMealList(document.getElementById('meal-list'), todayMeals, {
+    deletable: true,
+    emptyMessage: 'No meals logged yet today.'
   });
+}
 
-  // Meal list
-  const list = document.getElementById('meal-list');
-  if (todayMeals.length === 0) {
-    list.innerHTML = '<div class="empty-state"><div class="icon">🍽</div><div>No meals logged yet today.</div></div>';
+function toggleHistoryDay(dayStr) {
+  if (historyExpandedDays.has(dayStr)) {
+    historyExpandedDays.delete(dayStr);
+  } else {
+    historyExpandedDays.add(dayStr);
+  }
+  renderHistory();
+}
+
+function renderHistory() {
+  const noTarget = document.getElementById('history-no-target');
+  const content = document.getElementById('history-content');
+  const list = document.getElementById('history-list');
+
+  if (!state.target) {
+    noTarget.style.display = 'block';
+    content.style.display = 'none';
     return;
   }
 
+  noTarget.style.display = 'none';
+  content.style.display = 'block';
+
+  const dayGroups = groupMealsByDay();
+
   list.innerHTML = '';
-  todayMeals.forEach(function(m, i) {
-    var time = new Date(m.timestamp);
-    var hh = String(time.getHours()).padStart(2,'0');
-    var mm = String(time.getMinutes()).padStart(2,'0');
+  if (dayGroups.length === 0) {
+    list.innerHTML =
+      '<div class="empty-state"><div class="icon">📅</div><div>No meals logged yet.</div></div>';
+    return;
+  }
 
-    var icons = { protein: '🥩', veggie: '🥦', carb: '🌾', fat: '🥑' };
-    var emojiStr = '';
-    ['protein','veggie','carb','fat'].forEach(function(k) {
-      var n = m.portions[k];
-      if (n > 0) emojiStr += (emojiStr ? ' ' : '') + icons[k].repeat(n);
+  dayGroups.forEach(function(group) {
+    const totals = sumMealTotals(group.meals);
+    const isExpanded = historyExpandedDays.has(group.dayStr);
+    const dayBlock = document.createElement('div');
+    dayBlock.className = 'history-day' + (isExpanded ? ' expanded' : '');
+
+    const expandBtn = document.createElement('button');
+    expandBtn.type = 'button';
+    expandBtn.className = 'history-day-toggle';
+    expandBtn.dataset.historyDay = group.dayStr;
+    expandBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    expandBtn.setAttribute('aria-label', (isExpanded ? 'Hide' : 'Show') + ' meals for ' + formatShortDate(group.date));
+
+    const headerRow = document.createElement('div');
+    headerRow.className = 'history-day-header';
+    headerRow.innerHTML =
+      '<span class="date-today">' + formatShortDate(group.date) + '</span>' +
+      '<span class="history-day-chevron" aria-hidden="true"></span>';
+    expandBtn.appendChild(headerRow);
+
+    const portionsRow = document.createElement('div');
+    portionsRow.className = 'history-portions';
+    const goals = calcEffectiveBudget({
+      protein: totals.protein,
+      veggie: totals.veggie,
+      carb: totals.carb,
+      fat: totals.fat
     });
+    renderPortionRow(portionsRow, totals, goals, {
+      consumed: totals.kcal,
+      goal: getEffectiveTarget()
+    });
+    expandBtn.appendChild(portionsRow);
+    dayBlock.appendChild(expandBtn);
 
-    var entry = document.createElement('div');
-    entry.className = 'meal-entry';
+    const mealList = document.createElement('div');
+    mealList.className = 'meal-list history-day-meals';
+    mealList.hidden = !isExpanded;
+    renderMealList(mealList, group.meals);
+    dayBlock.appendChild(mealList);
 
-    var left = document.createElement('div');
-
-    var timeEl = document.createElement('div');
-    timeEl.className = 'meal-entry-time';
-    timeEl.textContent = hh + ':' + mm;
-
-    var portionsEl = document.createElement('div');
-    portionsEl.className = 'meal-entry-portions';
-    portionsEl.textContent = emojiStr;
-
-    left.appendChild(timeEl);
-    left.appendChild(portionsEl);
-
-    var kcalEl = document.createElement('div');
-    kcalEl.className = 'meal-entry-kcal';
-    kcalEl.textContent = m.kcal + ' kcal';
-
-    var delBtn = document.createElement('button');
-    delBtn.className = 'meal-delete';
-    delBtn.title = 'Delete';
-    delBtn.textContent = '✕';
-    delBtn.dataset.deleteMealIndex = i;
-
-    entry.appendChild(left);
-    entry.appendChild(kcalEl);
-    entry.appendChild(delBtn);
-    list.appendChild(entry);
+    list.appendChild(dayBlock);
   });
 }
 
@@ -832,14 +1020,14 @@ function deleteMeal(index) {
   const toDelete = todayMeals[index];
   state.meals = state.meals.filter(m => m !== toDelete);
   saveState();
-  renderToday();
+  refreshDayViews();
 }
 
 function resetDay() {
   const todayStr = new Date().toDateString();
   state.meals = state.meals.filter(m => new Date(m.timestamp).toDateString() !== todayStr);
   saveState();
-  renderToday();
+  refreshDayViews();
 }
 
 /* ══════════════════════════════════════════
