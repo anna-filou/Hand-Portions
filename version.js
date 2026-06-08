@@ -1,2 +1,2 @@
 // Bump this on every release. Also update the "version" field in manifest.webmanifest.
-const APP_VERSION = '0.3.12';
+const APP_VERSION = '0.3.13';
