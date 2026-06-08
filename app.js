@@ -471,8 +471,10 @@ function renderToday() {
   const todayMeals = state.meals.filter(m => new Date(m.timestamp).toDateString() === todayStr);
 
   // Totals
+  var p = state.portions[state.handSize];
   let totalKcal = 0;
   let portionP = 0, portionV = 0, portionC = 0, portionFt = 0;
+  const kcalByType = { protein: 0, veggie: 0, carb: 0, fat: 0 };
 
   todayMeals.forEach(m => {
     totalKcal += m.kcal;
@@ -480,6 +482,9 @@ function renderToday() {
     portionV  += m.portions.veggie;
     portionC  += m.portions.carb;
     portionFt += m.portions.fat;
+    ['protein', 'veggie', 'carb', 'fat'].forEach(function(k) {
+      kcalByType[k] += m.portions[k] * p[k];
+    });
   });
 
   // Progress — show consumed as a ±5% range (hand portions are ~95% accurate)
@@ -487,31 +492,36 @@ function renderToday() {
   const consumedHi = Math.round(totalKcal * 1.05);
   const pct = Math.min(100, Math.round((totalKcal / state.target) * 100));
   const fill = document.getElementById('prog-fill');
+  const bar = document.getElementById('prog-bar');
 
   document.getElementById('prog-consumed').textContent =
     totalKcal === 0 ? '0' : consumedLo + '–' + consumedHi;
   document.getElementById('prog-total').textContent = state.target;
   fill.style.width = pct + '%';
 
+  ['protein', 'veggie', 'carb', 'fat'].forEach(function(k) {
+    const segPct = totalKcal > 0 ? (kcalByType[k] / totalKcal) * 100 : 0;
+    document.getElementById('prog-seg-' + k).style.width = segPct + '%';
+  });
+
   const remEl = document.getElementById('prog-remaining');
   if (consumedHi < state.target) {
     const rem = state.target - consumedHi;
     remEl.textContent = rem + ' kcal below target';
     remEl.classList.remove('over');
-    fill.classList.remove('over');
+    bar.classList.remove('over');
   } else if (consumedLo <= state.target) {
     remEl.textContent = '✓ on target';
     remEl.classList.remove('over');
-    fill.classList.remove('over');
+    bar.classList.remove('over');
   } else {
     remEl.textContent = (consumedLo - state.target) + ' kcal over target';
     remEl.classList.add('over');
-    fill.classList.add('over');
+    bar.classList.add('over');
   }
 
   // Portion targets
   var goals = calcGoalPortions(state.weight || 70, state.goalMult, state.target, state.handSize);
-  var p = state.portions[state.handSize];
   const rows = [
     { key: 'protein', icon: '🥩', label: 'Protein', sub: 'palms', logged: portionP, target: goals.protein },
     { key: 'veggie', icon: '🥦', label: 'Veggies', sub: 'fists',  logged: portionV,  target: goals.veggie },

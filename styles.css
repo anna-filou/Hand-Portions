@@ -313,7 +313,7 @@
   .progress-total { color: var(--text-dim); }
 
   .progress-bar {
-    height: 6px;
+    height: 10px;
     background: var(--border);
     border-radius: 99px;
     overflow: hidden;
@@ -321,14 +321,26 @@
   }
 
   .progress-fill {
+    display: flex;
     width: 0%;
     height: 100%;
     border-radius: 99px;
-    background: var(--accent);
+    overflow: hidden;
     transition: width 0.4s ease;
   }
 
-  .progress-fill.over { background: #c97a7a; }
+  .progress-seg {
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  .progress-seg.protein { background: #7ab0c9; }
+  .progress-seg.veggie { background: var(--veggie); }
+  .progress-seg.carb { background: #e8a06a; }
+  .progress-seg.fat { background: var(--fat); }
+
+  .progress-bar.over { box-shadow: 0 0 0 1px #c97a7a; }
 
   .progress-remaining {
     font-size: 13px;

@@ -295,14 +295,18 @@
             <span class="progress-sep progress-kcal-label">kcal</span>
           </div>
         </div>
-        <div class="progress-bar">
-          <div class="progress-fill" id="prog-fill"></div>
+        <div class="progress-bar" id="prog-bar">
+          <div class="progress-fill" id="prog-fill">
+            <div class="progress-seg protein" id="prog-seg-protein"></div>
+            <div class="progress-seg veggie" id="prog-seg-veggie"></div>
+            <div class="progress-seg carb" id="prog-seg-carb"></div>
+            <div class="progress-seg fat" id="prog-seg-fat"></div>
+          </div>
         </div>
         <div class="progress-remaining" id="prog-remaining">— kcal remaining</div>
       </div>
 
       <div class="card">
-        <div class="card-title"><span>📊</span> Portions Today</div>
         <div id="portion-targets">
           <!-- rendered by JS -->
         </div>
