@@ -482,28 +482,28 @@ function renderToday() {
     portionFt += m.portions.fat;
   });
 
-  // Progress — show target as a ±5% range (hand portions are ~95% accurate)
-  const rangeLo = Math.round(state.target * 0.95);
-  const rangeHi = Math.round(state.target * 1.05);
-  const pct = Math.min(100, Math.round((totalKcal / rangeHi) * 100));
+  // Progress — show consumed as a ±5% range (hand portions are ~95% accurate)
+  const consumedLo = Math.round(totalKcal * 0.95);
+  const consumedHi = Math.round(totalKcal * 1.05);
+  const pct = Math.min(100, Math.round((totalKcal / state.target) * 100));
   const fill = document.getElementById('prog-fill');
 
-  document.getElementById('prog-consumed').textContent = totalKcal;
-  document.getElementById('prog-total').textContent = rangeLo + '–' + rangeHi;
+  document.getElementById('prog-consumed').textContent = consumedLo + '–' + consumedHi;
+  document.getElementById('prog-total').textContent = state.target;
   fill.style.width = pct + '%';
 
   const remEl = document.getElementById('prog-remaining');
-  if (totalKcal < rangeLo) {
-    const rem = rangeLo - totalKcal;
-    remEl.textContent = rem + ' kcal below range';
+  if (consumedHi < state.target) {
+    const rem = state.target - consumedHi;
+    remEl.textContent = rem + ' kcal below target';
     remEl.classList.remove('over');
     fill.classList.remove('over');
-  } else if (totalKcal <= rangeHi) {
-    remEl.textContent = '✓ within range';
+  } else if (consumedLo <= state.target) {
+    remEl.textContent = '✓ on target';
     remEl.classList.remove('over');
     fill.classList.remove('over');
   } else {
-    remEl.textContent = (totalKcal - rangeHi) + ' kcal over range';
+    remEl.textContent = (consumedLo - state.target) + ' kcal over target';
     remEl.classList.add('over');
     fill.classList.add('over');
   }
