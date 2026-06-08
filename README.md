@@ -28,19 +28,19 @@ and big shift values down or up.
 ```mermaid
 flowchart LR
   Setup["Settings: body stats + goal"] --> Budget["Daily portion budget"]
-  Budget --> Log["Log Meal: count portions"]
-  Log --> Today["Today: progress vs budget"]
-  Log --> History["History: past days"]
+  Budget --> Today["Today: progress vs budget"]
+  Today --> Log["Log meal modal"]
+  Log --> Today
+  Today --> History["History: past days"]
 ```
 
 1. **Settings** — Enter weight, height, age, activity, and a goal (lose /
    maintain / gain). The app estimates your daily calorie target, then converts
    that into a starting portion budget.
-2. **Log Meal** — Tap +/− for each portion type (or use shortcuts for drinks,
-   snacks, etc.), then save the meal.
-3. **Today** — See calories and portion progress for the current day (or browse
-   previous days). Delete individual meals or clear a whole day.
-4. **History** — Rolling 7-day calorie chart plus an expandable list of past
+2. **Today** — See calories and portion progress for the current day (or browse
+   previous days). Tap **Log meal** to open the logging modal, delete individual
+   meals, or clear a whole day.
+3. **History** — Rolling 7-day calorie chart plus an expandable list of past
    days with portion totals.
 
 On first launch you land in **Settings** until a target exists; returning users
@@ -79,17 +79,20 @@ can show the correct calorie goal for each past day.
 
 ### Logging a meal
 
+From **Today**, tap **Log meal** to open a modal where you count portions with
++/− (or use shortcuts for drinks, snacks, etc.), then save the meal.
+
 Each logged meal stores:
 
-- Timestamp (defaults to today; if you opened Log from a past Today view, that
-  day is used instead)
+- Timestamp (defaults to today; if you opened the modal while viewing a past
+  day on Today, that day is used instead)
 - Portion counts and total kcal
 - Estimated macro grams (derived from PN midpoint values)
 
-In-progress counts on the Log tab persist in local storage so you can switch
-tabs without losing a half-filled meal.
+In-progress counts in the log modal persist in local storage so you can close
+the modal or switch tabs without losing a half-filled meal.
 
-**Shortcuts** on Log Meal pre-fill common combos — processed snack (+1 carb +1
+**Shortcuts** in the log modal pre-fill common combos — processed snack (+1 carb +1
 fat), soda/juice (+1 carb), and popups for light/heavy drinks and dairy.
 
 ### Today view
@@ -139,9 +142,9 @@ tap-again-to-confirm — no browser `confirm()` dialogs.
 
 ## Architecture
 
-Vanilla HTML/CSS/JS — no build step, no framework. Single-page app with four
-tab sections toggled in the DOM; all interaction flows through delegated click
-handling in `app.js`.
+Vanilla HTML/CSS/JS — no build step, no framework. Single-page app with three
+tab sections plus a log-meal modal; all interaction flows through delegated
+click handling in `app.js`.
 
 ```
 index.html   markup + tab sections

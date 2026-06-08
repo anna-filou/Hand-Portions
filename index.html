@@ -17,7 +17,6 @@
   <div class="tabs">
     <button class="tab" data-tab="history">History</button>
     <button class="tab" data-tab="today">Today</button>
-    <button class="tab" data-tab="log">Log Meal</button>
     <button class="tab" data-tab="setup">Settings</button>
   </div>
 
@@ -286,162 +285,6 @@
 
   </div>
 
-  <!-- ═══════════════════ LOG MEAL ═══════════════════ -->
-  <div id="section-log" class="section">
-
-    <div id="no-target-msg" class="info-callout callout-spaced">
-      ⚠ No calorie target set yet. Go to <strong>Setup</strong> first.
-    </div>
-
-    <div id="log-content">
-      <div class="card">
-        <div class="meal-total-summary">
-          <span class="meal-total-label">Meal total</span>
-          <span class="meal-total-value" id="meal-total">0 kcal</span>
-        </div>
-
-        <div class="portion-grid">
-          <!-- Protein -->
-          <div class="portion-row portion-row-protein">
-            <div class="portion-icon">🥩</div>
-            <div class="portion-body">
-              <div class="portion-top">
-                <div class="portion-title-row">
-                  <div class="portion-name">Protein</div>
-                  <div class="portion-size">Palm</div>
-                </div>
-                <div class="portion-controls">
-                  <button class="count-btn" data-count-type="protein" data-count-delta="-1">−</button>
-                  <div class="count-display" id="count-protein">0</div>
-                  <button class="count-btn" data-count-type="protein" data-count-delta="1">+</button>
-                </div>
-              </div>
-              <div class="portion-bottom">
-                <div class="portion-desc">meat, fish, eggs, legumes</div>
-                <div class="portion-kcal" id="protein-kcal">0 kcal</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Veggies -->
-          <div class="portion-row portion-row-veggie">
-            <div class="portion-icon">🥦</div>
-            <div class="portion-body">
-              <div class="portion-top">
-                <div class="portion-title-row">
-                  <div class="portion-name">Vegetables</div>
-                  <div class="portion-size">Fist</div>
-                </div>
-                <div class="portion-controls">
-                  <button class="count-btn" data-count-type="veggie" data-count-delta="-1">−</button>
-                  <div class="count-display" id="count-veggie">0</div>
-                  <button class="count-btn" data-count-type="veggie" data-count-delta="1">+</button>
-                </div>
-              </div>
-              <div class="portion-bottom">
-                <div class="portion-desc">non-starchy veg</div>
-                <div class="portion-kcal" id="veggie-kcal">0 kcal</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Carbs -->
-          <div class="portion-row portion-row-carb">
-            <div class="portion-icon">🌾</div>
-            <div class="portion-body">
-              <div class="portion-top">
-                <div class="portion-title-row">
-                  <div class="portion-name">Carbs</div>
-                  <div class="portion-size">Cupped hand</div>
-                </div>
-                <div class="portion-controls">
-                  <button class="count-btn" data-count-type="carb" data-count-delta="-1">−</button>
-                  <div class="count-display" id="count-carb">0</div>
-                  <button class="count-btn" data-count-type="carb" data-count-delta="1">+</button>
-                </div>
-              </div>
-              <div class="portion-bottom">
-                <div class="portion-desc">grains, fruit, tubers</div>
-                <div class="portion-kcal" id="carb-kcal">0 kcal</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Fat -->
-          <div class="portion-row portion-row-fat">
-            <div class="portion-icon">🥑</div>
-            <div class="portion-body">
-              <div class="portion-top">
-                <div class="portion-title-row">
-                  <div class="portion-name">Fats</div>
-                  <div class="portion-size">Thumb</div>
-                </div>
-                <div class="portion-controls">
-                  <button class="count-btn" data-count-type="fat" data-count-delta="-1">−</button>
-                  <div class="count-display" id="count-fat">0</div>
-                  <button class="count-btn" data-count-type="fat" data-count-delta="1">+</button>
-                </div>
-              </div>
-              <div class="portion-bottom">
-                <div class="portion-desc">oils, nuts, cheese</div>
-                <div class="portion-kcal" id="fat-kcal">0 kcal</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick-add shortcuts -->
-        <div class="quick-add-section">
-          <div class="quick-add-label">Shortcuts</div>
-          <div class="quick-add-grid">
-
-            <!-- Processed snack: +1 carb +1 fat -->
-            <button class="quick-btn" data-action="quick-add-processed">
-              <div class="qb-icon">🍟</div>
-              <span class="qb-name">Processed</span>
-              <div class="qb-adds">+1 carb · +1 fat</div>
-            </button>
-
-            <!-- Light drink: popup -->
-            <button class="quick-btn" data-action="open-light-popup">
-              <div class="qb-icon">🍷</div>
-              <span class="qb-name">Light drink</span>
-              <div class="qb-adds">tap to log</div>
-            </button>
-
-            <!-- Heavy drink: mixed/craft beer/dessert wine — popup to choose -->
-            <button class="quick-btn" data-action="open-heavy-popup">
-              <div class="qb-icon">🍹</div>
-              <span class="qb-name">Heavy drink</span>
-              <div class="qb-adds">tap to log</div>
-            </button>
-
-            <!-- Dairy: popup -->
-            <button class="quick-btn" data-action="open-dairy-popup">
-              <div class="qb-icon">🥛</div>
-              <span class="qb-name">Dairy / milk</span>
-              <div class="qb-adds">tap to log</div>
-            </button>
-
-            <!-- Soda / juice: 355ml = 1 carb -->
-            <button class="quick-btn" data-action="quick-add-soda">
-              <div class="qb-icon">🥤</div>
-              <span class="qb-name">Soda / juice</span>
-              <div class="qb-adds">+1 carb · 12oz (355ml)</div>
-            </button>
-
-          </div>
-        </div>
-
-        <div class="log-btn-wrap">
-          <button type="button" class="btn btn-primary" id="log-meal-btn" data-action="log-meal">Add to today →</button>
-          <button class="btn btn-ghost btn-inline" data-action="reset-counts">Clear</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
   <!-- ═══════════════════ TODAY ═══════════════════ -->
   <div id="section-today" class="section">
 
@@ -454,7 +297,6 @@
         <button type="button" class="date-nav-btn" id="today-prev-day" data-action="today-prev-day" aria-label="Previous day">‹</button>
         <div class="date-header-main">
           <div class="date-today" id="today-date-str"></div>
-          <div class="date-str" id="today-day-str">Today</div>
         </div>
         <button type="button" class="date-nav-btn" id="today-next-day" data-action="today-next-day" aria-label="Next day">›</button>
       </div>
@@ -492,7 +334,7 @@
           </div>
         </div>
         <div class="today-log-wrap">
-          <button type="button" class="btn btn-primary today-log-meal-btn" data-tab="log">Log meal</button>
+          <button type="button" class="btn btn-primary today-log-meal-btn" data-action="open-log-meal">Log meal</button>
         </div>
         <div class="today-reset-wrap" id="today-reset-wrap" hidden>
           <button type="button" class="btn-link" id="delete-all-meals-btn" data-action="reset-day">Clear all</button>
@@ -520,6 +362,167 @@
 
   </div>
 
+
+  <!-- ── Log meal modal ── -->
+  <div id="log-meal-popup-overlay" class="popup-overlay log-meal-overlay" data-popup="log-meal">
+    <div id="log-meal-sheet" class="log-meal-sheet">
+      <div class="log-meal-header">
+        <div class="popup-title">Log meal</div>
+        <button type="button" class="log-meal-close" data-action="close-log-meal" aria-label="Close">×</button>
+      </div>
+
+      <div id="no-target-msg" class="info-callout callout-spaced">
+        ⚠ No calorie target set yet. Go to <strong>Settings</strong> first.
+      </div>
+
+      <div id="log-content">
+        <div class="card">
+          <div class="meal-total-summary">
+            <span class="meal-total-label">Meal total</span>
+            <span class="meal-total-value" id="meal-total">0 kcal</span>
+          </div>
+
+          <div class="portion-grid">
+            <!-- Protein -->
+            <div class="portion-row portion-row-protein">
+              <div class="portion-icon">🥩</div>
+              <div class="portion-body">
+                <div class="portion-top">
+                  <div class="portion-title-row">
+                    <div class="portion-name">Protein</div>
+                    <div class="portion-size">Palm</div>
+                  </div>
+                  <div class="portion-controls">
+                    <button class="count-btn" data-count-type="protein" data-count-delta="-1">−</button>
+                    <div class="count-display" id="count-protein">0</div>
+                    <button class="count-btn" data-count-type="protein" data-count-delta="1">+</button>
+                  </div>
+                </div>
+                <div class="portion-bottom">
+                  <div class="portion-desc">meat, fish, eggs, legumes</div>
+                  <div class="portion-kcal" id="protein-kcal">0 kcal</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Veggies -->
+            <div class="portion-row portion-row-veggie">
+              <div class="portion-icon">🥦</div>
+              <div class="portion-body">
+                <div class="portion-top">
+                  <div class="portion-title-row">
+                    <div class="portion-name">Vegetables</div>
+                    <div class="portion-size">Fist</div>
+                  </div>
+                  <div class="portion-controls">
+                    <button class="count-btn" data-count-type="veggie" data-count-delta="-1">−</button>
+                    <div class="count-display" id="count-veggie">0</div>
+                    <button class="count-btn" data-count-type="veggie" data-count-delta="1">+</button>
+                  </div>
+                </div>
+                <div class="portion-bottom">
+                  <div class="portion-desc">non-starchy veg</div>
+                  <div class="portion-kcal" id="veggie-kcal">0 kcal</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Carbs -->
+            <div class="portion-row portion-row-carb">
+              <div class="portion-icon">🌾</div>
+              <div class="portion-body">
+                <div class="portion-top">
+                  <div class="portion-title-row">
+                    <div class="portion-name">Carbs</div>
+                    <div class="portion-size">Cupped hand</div>
+                  </div>
+                  <div class="portion-controls">
+                    <button class="count-btn" data-count-type="carb" data-count-delta="-1">−</button>
+                    <div class="count-display" id="count-carb">0</div>
+                    <button class="count-btn" data-count-type="carb" data-count-delta="1">+</button>
+                  </div>
+                </div>
+                <div class="portion-bottom">
+                  <div class="portion-desc">grains, fruit, tubers</div>
+                  <div class="portion-kcal" id="carb-kcal">0 kcal</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fat -->
+            <div class="portion-row portion-row-fat">
+              <div class="portion-icon">🥑</div>
+              <div class="portion-body">
+                <div class="portion-top">
+                  <div class="portion-title-row">
+                    <div class="portion-name">Fats</div>
+                    <div class="portion-size">Thumb</div>
+                  </div>
+                  <div class="portion-controls">
+                    <button class="count-btn" data-count-type="fat" data-count-delta="-1">−</button>
+                    <div class="count-display" id="count-fat">0</div>
+                    <button class="count-btn" data-count-type="fat" data-count-delta="1">+</button>
+                  </div>
+                </div>
+                <div class="portion-bottom">
+                  <div class="portion-desc">oils, nuts, cheese</div>
+                  <div class="portion-kcal" id="fat-kcal">0 kcal</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick-add shortcuts -->
+          <div class="quick-add-section">
+            <div class="quick-add-label">Shortcuts</div>
+            <div class="quick-add-grid">
+
+              <!-- Processed snack: +1 carb +1 fat -->
+              <button class="quick-btn" data-action="quick-add-processed">
+                <div class="qb-icon">🍟</div>
+                <span class="qb-name">Processed</span>
+                <div class="qb-adds">+1 carb · +1 fat</div>
+              </button>
+
+              <!-- Light drink: popup -->
+              <button class="quick-btn" data-action="open-light-popup">
+                <div class="qb-icon">🍷</div>
+                <span class="qb-name">Light drink</span>
+                <div class="qb-adds">tap to log</div>
+              </button>
+
+              <!-- Heavy drink: mixed/craft beer/dessert wine — popup to choose -->
+              <button class="quick-btn" data-action="open-heavy-popup">
+                <div class="qb-icon">🍹</div>
+                <span class="qb-name">Heavy drink</span>
+                <div class="qb-adds">tap to log</div>
+              </button>
+
+              <!-- Dairy: popup -->
+              <button class="quick-btn" data-action="open-dairy-popup">
+                <div class="qb-icon">🥛</div>
+                <span class="qb-name">Dairy / milk</span>
+                <div class="qb-adds">tap to log</div>
+              </button>
+
+              <!-- Soda / juice: 355ml = 1 carb -->
+              <button class="quick-btn" data-action="quick-add-soda">
+                <div class="qb-icon">🥤</div>
+                <span class="qb-name">Soda / juice</span>
+                <div class="qb-adds">+1 carb · 12oz (355ml)</div>
+              </button>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="log-btn-wrap" id="log-meal-footer">
+        <button type="button" class="btn btn-primary" id="log-meal-btn" data-action="log-meal">Add to today →</button>
+        <button type="button" class="btn btn-ghost btn-inline" data-action="reset-counts">Clear</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Heavy drink popup ── -->
   <div id="heavy-popup-overlay" class="popup-overlay" data-popup="heavy">

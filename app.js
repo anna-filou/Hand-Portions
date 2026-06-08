@@ -239,7 +239,6 @@ function syncUIAfterStateChange() {
 ══════════════════════════════════════════ */
 function switchTab(tab, options) {
   options = options || {};
-  const wasOnToday = isSectionActive('section-today');
 
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -252,7 +251,10 @@ function switchTab(tab, options) {
     disarmResetEverything();
     disarmImportBackup();
   }
-  if (tab !== 'today') disarmDeleteAllMeals();
+  if (tab !== 'today') {
+    disarmDeleteAllMeals();
+    closeLogMealModal();
+  }
   if (tab !== 'history') disarmDeleteHistoryDay();
 
   if (tab === 'today') {
@@ -261,10 +263,6 @@ function switchTab(tab, options) {
     renderToday();
   }
   if (tab === 'history') renderHistory();
-  if (tab === 'log') {
-    logTargetDay = wasOnToday ? startOfDay(todayViewDate) : getActualToday();
-    updateLogUI();
-  }
   if (tab === 'setup') updateSetupUI();
 }
 
@@ -380,6 +378,8 @@ function runAction(action) {
     'open-heavy-popup': openHeavyPopup,
     'open-dairy-popup': openDairyPopup,
     'quick-add-soda': quickAddSoda,
+    'open-log-meal': openLogMealModal,
+    'close-log-meal': closeLogMealModal,
     'log-meal': logMeal,
     'reset-counts': resetCounts,
     'reset-day': handleResetDay,
@@ -677,15 +677,28 @@ function updateLogMealButtonLabel() {
   btn.textContent = 'Add to ' + formatLogMealDayLabel(day) + ' →';
 }
 
+function openLogMealModal() {
+  logTargetDay = startOfDay(todayViewDate);
+  updateLogUI();
+  setPopupOpen('log-meal', true);
+}
+
+function closeLogMealModal() {
+  closePopup('log-meal');
+}
+
 function updateLogUI() {
   const noTarget = document.getElementById('no-target-msg');
   const logContent = document.getElementById('log-content');
+  const logFooter = document.getElementById('log-meal-footer');
   if (!state.target) {
     noTarget.style.display = 'block';
     logContent.style.display = 'none';
+    if (logFooter) logFooter.style.display = 'none';
   } else {
     noTarget.style.display = 'none';
     logContent.style.display = 'block';
+    if (logFooter) logFooter.style.display = 'flex';
     updateLogMealButtonLabel();
     updatePortionKcals();
     updateMealTotal();
@@ -765,7 +778,8 @@ function logMeal() {
   saveState();
   resetCounts();
   todayViewDate = startOfDay(logTargetDay || getActualToday());
-  switchTab('today');
+  closeLogMealModal();
+  renderToday();
 }
 
 /* ══════════════════════════════════════════
@@ -857,9 +871,6 @@ const PORTION_ROW_META = [
   { key: 'fat', icon: '🥑', label: 'Fats', sub: 'thumbs' }
 ];
 
-function formatDateLabel(date) {
-  return `${DAY_NAMES[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
-}
 
 function startOfDay(date) {
   const next = new Date(date);
@@ -1257,10 +1268,10 @@ function renderToday() {
   const actualToday = getActualToday();
   const isViewingToday = isSameDay(todayViewDate, actualToday);
   const dayStr = getTodayViewDayStr();
-  document.getElementById('today-date-str').textContent = formatDateLabel(todayViewDate);
-  const dayStrEl = document.getElementById('today-day-str');
-  dayStrEl.textContent = 'Today';
-  dayStrEl.hidden = !isViewingToday;
+  const dateStrEl = document.getElementById('today-date-str');
+  const dayName = DAY_NAMES[todayViewDate.getDay()];
+  const dateRest = todayViewDate.getDate() + ' ' + MONTH_NAMES[todayViewDate.getMonth()] + ' ' + todayViewDate.getFullYear();
+  dateStrEl.innerHTML = '<span class="today-day-name' + (isViewingToday ? ' is-today' : '') + '">' + dayName + '</span>, ' + dateRest;
 
   const nextDayBtn = document.getElementById('today-next-day');
   if (nextDayBtn) nextDayBtn.disabled = isViewingToday;
@@ -1579,6 +1590,7 @@ function performResetEverything() {
   });
 
   ['heavy', 'light', 'dairy'].forEach(closePopup);
+  closeLogMealModal();
 
   restoreProfileUI();
   restoreCountUI();
