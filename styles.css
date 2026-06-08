@@ -336,10 +336,10 @@
   }
 
   /* Same hues as portion labels, higher saturation for segment contrast */
-  .progress-seg.protein { background: #3eb0e8; }
-  .progress-seg.veggie { background: #3dd63d; }
-  .progress-seg.carb { background: #ff9638; }
-  .progress-seg.fat { background: #e8c840; }
+  .progress-seg.protein { background: #2b9dd6; }
+  .progress-seg.veggie { background: #58ed58; }
+  .progress-seg.carb { background: #e5931c; }
+  .progress-seg.fat { background: #efd255; }
 
   .progress-bar.over { box-shadow: 0 0 0 1px #c97a7a; }
 
@@ -552,6 +552,15 @@
     color: var(--accent);
   }
 
+  .budget-total-summary {
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+
+  #setup-budget .budget-grid {
+    margin-top: 12px;
+  }
+
   /* ── Meal history ── */
   .meal-list {
     display: flex;
@@ -632,6 +641,21 @@
   .callout-spaced { margin-bottom: 20px; }
 
   .setup-demo-btn { margin-bottom: 10px; }
+
+  .setup-recalc-wrap {
+    margin-bottom: 24px;
+  }
+
+  .setup-recalc-hint {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+
+  .setup-wizard-cancel {
+    margin-top: 10px;
+  }
 
   /* ── Sections ── */
   .section { display: none; }
@@ -934,11 +958,9 @@
     grid-template-columns: auto 1fr;
     grid-template-areas:
       "icon label"
-      "icon portions"
-      "icon kcal";
+      "icon portions";
     align-items: center;
     column-gap: 10px;
-    row-gap: 2px;
     background: var(--surface);
     border: none;
     border-radius: var(--radius-sm);
@@ -980,15 +1002,6 @@
     white-space: nowrap;
   }
 
-  .pt-kcal {
-    grid-area: kcal;
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.35;
-    white-space: nowrap;
-  }
-
   /* ── Quick-add shortcuts ── */
   .quick-add-section {
     margin-top: 16px;
@@ -1026,9 +1039,9 @@
     color: var(--text);
   }
 
-  .quick-btn .qb-icon { font-size: 18px; line-height: 1; margin-bottom: 4px; }
+  .quick-btn .qb-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
   .quick-btn .qb-name { font-size: 13px; font-weight: 500; color: var(--text); display: block; margin-bottom: 2px; }
-  .quick-btn .qb-adds { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+  .quick-btn .qb-adds { font-size: 12px; color: var(--text-dim); line-height: 1.4; white-space: nowrap; }
 
   /* drink toggle */
   .drink-toggle {
@@ -1124,7 +1137,7 @@
     background: var(--accent-dim);
   }
 
-  .popup-opt-icon { font-size: 20px; margin-bottom: 6px; line-height: 1; }
+  .popup-opt-icon { font-size: 28px; margin-bottom: 6px; line-height: 1; }
   .popup-opt-label { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
   .popup-opt-sub { font-size: 12px; color: var(--text-dim); }
 

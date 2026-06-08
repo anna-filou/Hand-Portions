@@ -3,6 +3,7 @@
 ══════════════════════════════════════════ */
 let state = {
   target: null,       // daily kcal target
+  budget: null,       // daily portion budget { protein, veggie, carb, fat }
   handSize: 'average',
   portions: {         // kcal per portion by hand size
     small:   { protein: 130, veggie: 25, carb: 110, fat: 90 },
@@ -29,6 +30,7 @@ let state = {
 const STORAGE_KEY = 'handful-state-v1';
 const PORTION_TYPES = ['protein', 'veggie', 'carb', 'fat'];
 const HAND_SIZES = ['small', 'average', 'big'];
+let setupWizardOpen = false;
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -67,9 +69,13 @@ function loadState() {
     const goalMult = Number(savedState.goalMult);
     const weight = Number(savedState.weight);
 
+    const budget = isObject(savedState.budget) ? cleanCounts(savedState.budget) : null;
+    const hasBudget = PORTION_TYPES.some((type) => budget[type] > 0);
+
     state = {
       ...state,
       target: Number.isFinite(target) && target > 0 ? target : null,
+      budget: hasBudget ? budget : null,
       handSize: HAND_SIZES.includes(savedState.handSize) ? savedState.handSize : state.handSize,
       counts: cleanCounts(savedState.counts),
       meals: cleanMeals(savedState.meals),
@@ -89,6 +95,7 @@ function saveState() {
   try {
     const persistentState = {
       target: state.target,
+      budget: state.budget,
       handSize: state.handSize,
       counts: state.counts,
       meals: state.meals,
@@ -115,6 +122,7 @@ function switchTab(tab) {
 
   if (tab === 'today') renderToday();
   if (tab === 'log') updateLogUI();
+  if (tab === 'setup') updateSetupUI();
 }
 
 function handleAppClick(event) {
@@ -133,6 +141,12 @@ function handleAppClick(event) {
   const handButton = event.target.closest('.toggle-option');
   if (handButton) {
     selectHand(handButton);
+    return;
+  }
+
+  const budgetButton = event.target.closest('[data-budget-type]');
+  if (budgetButton) {
+    changeBudget(budgetButton.dataset.budgetType, Number(budgetButton.dataset.budgetDelta));
     return;
   }
 
@@ -180,6 +194,8 @@ function handleAppClick(event) {
 function runAction(action) {
   const actions = {
     'use-demo': useDemoValues,
+    'open-setup-wizard': openSetupWizard,
+    'close-setup-wizard': closeSetupWizard,
     'calculate-target': calculateTarget,
     'quick-add-processed': quickAddProcessed,
     'open-light-popup': openLightPopup,
@@ -214,6 +230,7 @@ function selectHand(el) {
   state.handSize = el.dataset.hand;
   updatePortionKcals();
   updateMealTotal();
+  updateSetupUI();
   saveState();
   if (document.getElementById('section-today').classList.contains('active')) renderToday();
 }
@@ -279,10 +296,103 @@ function calculateTarget() {
     bodyfat: !isNaN(bf) && bf >= 5 && bf <= 60 ? bf : '',
     activity: String(activity)
   };
+  state.budget = calcGoalPortions(weight, state.goalMult, state.target, state.handSize);
   saveState();
+  setupWizardOpen = false;
+  updateSetupUI();
 
   switchTab('today');
   renderToday();
+}
+
+function ensureBudget() {
+  if (!state.target) {
+    state.budget = null;
+    return;
+  }
+  if (state.budget && PORTION_TYPES.some((type) => state.budget[type] > 0)) return;
+
+  state.budget = calcGoalPortions(
+    state.weight || state.profile.weight || 70,
+    state.goalMult,
+    state.target,
+    state.handSize
+  );
+  saveState();
+}
+
+function budgetTotalKcal() {
+  const budget = state.budget || cleanCounts({});
+  const p = state.portions[state.handSize];
+  return PORTION_TYPES.reduce((total, type) => total + budget[type] * p[type], 0);
+}
+
+function getEffectiveTarget() {
+  if (!state.target) return 0;
+  ensureBudget();
+  return budgetTotalKcal();
+}
+
+function updateSetupBudgetUI() {
+  const wrap = document.getElementById('setup-budget');
+  if (!wrap) return;
+
+  if (!state.target || !state.budget) {
+    wrap.hidden = true;
+    return;
+  }
+
+  wrap.hidden = false;
+  const p = state.portions[state.handSize];
+
+  PORTION_TYPES.forEach((type) => {
+    const count = state.budget[type] || 0;
+    document.getElementById('budget-count-' + type).textContent = count;
+    document.getElementById('budget-kcal-' + type).textContent = (count * p[type]) + ' kcal';
+  });
+
+  document.getElementById('budget-total').textContent = budgetTotalKcal() + ' kcal';
+}
+
+function updateSetupUI() {
+  const hasTarget = !!state.target;
+  const wizard = document.getElementById('setup-wizard');
+  const recalcWrap = document.getElementById('setup-recalc-wrap');
+  const cancelBtn = document.querySelector('[data-action="close-setup-wizard"]');
+
+  if (!hasTarget) {
+    setupWizardOpen = false;
+    if (wizard) wizard.hidden = false;
+    if (recalcWrap) recalcWrap.hidden = true;
+    if (cancelBtn) cancelBtn.hidden = true;
+  } else {
+    if (wizard) wizard.hidden = !setupWizardOpen;
+    if (recalcWrap) recalcWrap.hidden = setupWizardOpen;
+    if (cancelBtn) cancelBtn.hidden = !setupWizardOpen;
+  }
+
+  updateSetupBudgetUI();
+}
+
+function openSetupWizard() {
+  setupWizardOpen = true;
+  updateSetupUI();
+}
+
+function closeSetupWizard() {
+  setupWizardOpen = false;
+  const errEl = document.getElementById('setup-error');
+  if (errEl) errEl.style.display = 'none';
+  updateSetupUI();
+}
+
+function changeBudget(type, delta) {
+  if (!state.budget) return;
+
+  state.budget[type] = Math.max(0, (state.budget[type] || 0) + delta);
+  updateSetupUI();
+  saveState();
+  if (document.getElementById('section-today').classList.contains('active')) renderToday();
 }
 
 /* ══════════════════════════════════════════
@@ -487,16 +597,17 @@ function renderToday() {
     });
   });
 
-  // Progress — show consumed as a ±5% range (hand portions are ~95% accurate)
+  // Progress — goal kcal follows the current portion budget total
+  const goalKcal = getEffectiveTarget();
   const consumedLo = Math.round(totalKcal * 0.95);
   const consumedHi = Math.round(totalKcal * 1.05);
-  const pct = Math.min(100, Math.round((totalKcal / state.target) * 100));
+  const pct = goalKcal > 0 ? Math.min(100, Math.round((totalKcal / goalKcal) * 100)) : 0;
   const fill = document.getElementById('prog-fill');
   const bar = document.getElementById('prog-bar');
 
   document.getElementById('prog-consumed').textContent =
     totalKcal === 0 ? '0' : consumedLo + '–' + consumedHi;
-  document.getElementById('prog-total').textContent = state.target;
+  document.getElementById('prog-total').textContent = goalKcal;
   fill.style.width = pct + '%';
 
   ['protein', 'veggie', 'carb', 'fat'].forEach(function(k) {
@@ -505,23 +616,23 @@ function renderToday() {
   });
 
   const remEl = document.getElementById('prog-remaining');
-  if (consumedHi < state.target) {
-    const rem = state.target - consumedHi;
+  if (consumedHi < goalKcal) {
+    const rem = goalKcal - consumedHi;
     remEl.textContent = rem + ' kcal below target';
     remEl.classList.remove('over');
     bar.classList.remove('over');
-  } else if (consumedLo <= state.target) {
+  } else if (consumedLo <= goalKcal) {
     remEl.textContent = '✓ on target';
     remEl.classList.remove('over');
     bar.classList.remove('over');
   } else {
-    remEl.textContent = (consumedLo - state.target) + ' kcal over target';
+    remEl.textContent = (consumedLo - goalKcal) + ' kcal over target';
     remEl.classList.add('over');
     bar.classList.add('over');
   }
 
   // Portion targets
-  var goals = calcGoalPortions(state.weight || 70, state.goalMult, state.target, state.handSize);
+  var goals = state.budget;
   const rows = [
     { key: 'protein', icon: '🥩', label: 'Protein', sub: 'palms', logged: portionP, target: goals.protein },
     { key: 'veggie', icon: '🥦', label: 'Veggies', sub: 'fists',  logged: portionV,  target: goals.veggie },
@@ -531,15 +642,12 @@ function renderToday() {
   const ptContainer = document.getElementById('portion-targets');
   ptContainer.innerHTML = '';
   rows.forEach(function(r) {
-    var loggedKcal = r.logged * p[r.key];
-    var targetKcal = r.target * p[r.key];
     var div = document.createElement('div');
     div.className = 'pt-card ' + r.key;
     div.innerHTML =
       '<div class="pt-icon">' + r.icon + '</div>' +
       '<div class="pt-label ' + r.key + '">' + r.label + '</div>' +
-      '<div class="pt-portions">' + r.logged + '/' + r.target + ' ' + r.sub + '</div>' +
-      '<div class="pt-kcal">' + loggedKcal + '/' + targetKcal + ' kcal</div>';
+      '<div class="pt-portions">' + r.logged + '/' + r.target + ' ' + r.sub + '</div>';
     ptContainer.appendChild(div);
   });
 
@@ -812,8 +920,10 @@ if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
 
 document.addEventListener('click', handleAppClick);
 loadState();
+ensureBudget();
 restoreProfileUI();
 restoreCountUI();
+updateSetupUI();
 
 // Restore hand size UI
 if (state.handSize) {
