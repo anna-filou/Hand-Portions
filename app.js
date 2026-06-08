@@ -488,7 +488,8 @@ function renderToday() {
   const pct = Math.min(100, Math.round((totalKcal / state.target) * 100));
   const fill = document.getElementById('prog-fill');
 
-  document.getElementById('prog-consumed').textContent = consumedLo + '–' + consumedHi;
+  document.getElementById('prog-consumed').textContent =
+    totalKcal === 0 ? '0' : consumedLo + '–' + consumedHi;
   document.getElementById('prog-total').textContent = state.target;
   fill.style.width = pct + '%';
 
@@ -510,6 +511,7 @@ function renderToday() {
 
   // Portion targets
   var goals = calcGoalPortions(state.weight || 70, state.goalMult, state.target, state.handSize);
+  var p = state.portions[state.handSize];
   const rows = [
     { key: 'protein', icon: '🥩', label: 'Protein', sub: 'palms', logged: portionP, target: goals.protein },
     { key: 'veggie', icon: '🥦', label: 'Veggies', sub: 'fists',  logged: portionV,  target: goals.veggie },
@@ -519,15 +521,15 @@ function renderToday() {
   const ptContainer = document.getElementById('portion-targets');
   ptContainer.innerHTML = '';
   rows.forEach(function(r) {
-    var met  = r.logged >= r.target;
-    var over = r.logged > r.target;
-    var cls  = over ? 'over' : (met ? 'met' : '');
+    var loggedKcal = r.logged * p[r.key];
+    var targetKcal = r.target * p[r.key];
     var div = document.createElement('div');
-    div.className = 'pt-card';
+    div.className = 'pt-card ' + r.key;
     div.innerHTML =
       '<div class="pt-icon">' + r.icon + '</div>' +
-      '<div class="pt-label">' + r.label + '</div>' +
-      '<div class="pt-portions ' + r.key + ' ' + cls + '">' + r.logged + '/' + r.target + ' ' + r.sub + '</div>';
+      '<div class="pt-label ' + r.key + '">' + r.label + '</div>' +
+      '<div class="pt-portions">' + r.logged + '/' + r.target + ' ' + r.sub + '</div>' +
+      '<div class="pt-kcal">' + loggedKcal + '/' + targetKcal + ' kcal</div>';
     ptContainer.appendChild(div);
   });
 

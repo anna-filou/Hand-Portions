@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">Handful app icon</title>
-  <desc id="desc">A gold hand mark on a dark rounded square.</desc>
-  <rect width="512" height="512" rx="108" fill="#0f0e0c"/>
-  <circle cx="256" cy="256" r="196" fill="#e8c97a" opacity="0.14"/>
-  <path fill="#e8c97a" d="M166 244c0-18 29-18 29 0v74h16V180c0-19 31-19 31 0v137h15V154c0-20 32-20 32 0v163h15V184c0-19 31-19 31 0v133h15v-74c0-18 30-18 30 0v89c0 73-43 118-109 118h-21c-57 0-94-35-94-91v-115z"/>
-  <path fill="#f8f6f0" opacity="0.22" d="M197 391c18 20 45 31 76 31h21c38 0 67-16 84-45-22 18-49 27-81 27h-22c-32 0-58-4-78-13z"/>
-</svg>

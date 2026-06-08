@@ -392,15 +392,27 @@
   }
 
   .portion-row {
-    display: grid;
-    grid-template-columns: 36px 1fr auto;
-    align-items: center;
-    gap: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 14px;
     transition: border-color 0.2s;
+  }
+
+  .portion-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .portion-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .portion-row:focus-within {
@@ -413,9 +425,10 @@
   .portion-row-fat { border-color: rgba(201,180,122,0.3); }
 
   .portion-icon {
-    font-size: 22px;
+    font-size: 32px;
     text-align: center;
     line-height: 1;
+    flex-shrink: 0;
   }
 
   .portion-info {
@@ -473,10 +486,8 @@
 
   .portion-kcal {
     font-family: 'DM Mono', monospace;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-dim);
-    margin-top: 2px;
-    text-align: right;
   }
 
   /* ── Log button ── */
@@ -484,6 +495,26 @@
     margin-top: 16px;
     display: flex;
     gap: 10px;
+  }
+
+  #log-content .log-btn-wrap {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 680px;
+    margin-top: 0;
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+    box-sizing: border-box;
+  }
+
+  #log-content .log-btn-wrap .btn-primary {
+    flex: 1;
+    width: auto;
   }
 
   .meal-total-summary {
@@ -520,8 +551,8 @@
     grid-template-columns: 1fr auto auto;
     align-items: center;
     gap: 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: var(--surface);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 12px 14px;
   }
@@ -611,6 +642,169 @@
     font-family: 'DM Serif Display', serif;
     font-size: 20px;
     color: var(--text);
+  }
+
+  /* ── Today: flat layout (no card boxes) ── */
+  #today-content .progress-wrap,
+  #today-content .card {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 24px;
+  }
+
+  #today-content .card-title {
+    margin-bottom: 12px;
+  }
+
+  #today-content .empty-state {
+    padding: 24px 0;
+  }
+
+  /* ── Log: flat layout (no card boxes) ── */
+  #log-content .card {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 24px;
+  }
+
+  #log-content .card-title {
+    margin-bottom: 12px;
+  }
+
+  #log-content .portion-row {
+    border: none;
+  }
+
+  #log-content .portion-row-protein {
+    background: rgba(122, 176, 201, 0.12);
+  }
+
+  #log-content .portion-row-protein .portion-name {
+    color: #7ab0c9;
+  }
+
+  #log-content .portion-row-protein:focus-within {
+    background: rgba(122, 176, 201, 0.2);
+  }
+
+  #log-content .portion-row-veggie {
+    background: var(--veggie-dim);
+  }
+
+  #log-content .portion-row-veggie .portion-name {
+    color: var(--veggie);
+  }
+
+  #log-content .portion-row-veggie:focus-within {
+    background: rgba(122, 201, 122, 0.2);
+  }
+
+  #log-content .portion-row-carb {
+    background: rgba(232, 160, 106, 0.12);
+  }
+
+  #log-content .portion-row-carb .portion-name {
+    color: #e8a06a;
+  }
+
+  #log-content .portion-row-carb:focus-within {
+    background: rgba(232, 160, 106, 0.2);
+  }
+
+  #log-content .portion-row-fat {
+    background: var(--fat-dim);
+  }
+
+  #log-content .portion-row-fat .portion-name {
+    color: var(--fat);
+  }
+
+  #log-content .portion-row-fat:focus-within {
+    background: rgba(201, 180, 122, 0.2);
+  }
+
+  #log-content .meal-total-summary {
+    background: var(--surface);
+    border: none;
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+
+  #log-content .quick-btn {
+    background: var(--surface);
+    border: none;
+  }
+
+  #log-content .quick-btn:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  /* ── Setup: flat layout (no card boxes) ── */
+  #section-setup .card {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 24px;
+  }
+
+  #section-setup .card-title {
+    margin-bottom: 12px;
+  }
+
+  #section-setup .fields-row {
+    margin-bottom: 10px;
+  }
+
+  #section-setup .field {
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+
+  #section-setup .fields-row .field {
+    margin-bottom: 0;
+  }
+
+  #section-setup .formula-note {
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-top: 0;
+  }
+
+  #section-setup input[type="number"],
+  #section-setup select {
+    border: none;
+    background: var(--bg);
+  }
+
+  #section-setup .goal-option {
+    background: var(--surface);
+    border: none;
+  }
+
+  #section-setup .goal-option.selected {
+    border: none;
+  }
+
+  #section-setup .toggle-option {
+    background: var(--surface);
+    border: none;
+  }
+
+  #section-setup .toggle-option.selected {
+    border: none;
+  }
+
+  #section-setup .card .info-callout {
+    background: var(--surface);
+    border: none;
   }
 
   /* ── Hand size toggle ── */
@@ -712,7 +906,7 @@
     .fields-row { grid-template-columns: 1fr; }
     .goal-grid { grid-template-columns: 1fr 1fr; }
     .macro-mini { grid-template-columns: 1fr 1fr; }
-    .portion-row { grid-template-columns: 28px 1fr auto; gap: 10px; }
+    .portion-head { gap: 10px; }
   }
 
   /* ── Portion target cards ── */
@@ -727,11 +921,13 @@
     grid-template-columns: auto 1fr;
     grid-template-areas:
       "icon label"
-      "icon portions";
+      "icon portions"
+      "icon kcal";
     align-items: center;
     column-gap: 10px;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    row-gap: 2px;
+    background: var(--surface);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 12px 14px;
     min-width: 0;
@@ -752,6 +948,16 @@
     line-height: 1.25;
   }
 
+  #portion-targets .pt-card.protein { background: rgba(122, 176, 201, 0.12); }
+  #portion-targets .pt-card.veggie { background: var(--veggie-dim); }
+  #portion-targets .pt-card.carb { background: rgba(232, 160, 106, 0.12); }
+  #portion-targets .pt-card.fat { background: var(--fat-dim); }
+
+  #portion-targets .pt-label.protein { color: #7ab0c9; }
+  #portion-targets .pt-label.veggie { color: var(--veggie); }
+  #portion-targets .pt-label.carb { color: #e8a06a; }
+  #portion-targets .pt-label.fat { color: var(--fat); }
+
   .pt-portions {
     grid-area: portions;
     font-family: 'DM Mono', monospace;
@@ -761,12 +967,14 @@
     white-space: nowrap;
   }
 
-  .pt-portions.protein { color: var(--protein); }
-  .pt-portions.veggie { color: var(--veggie); }
-  .pt-portions.carb { color: var(--carb); }
-  .pt-portions.fat { color: var(--fat); }
-  .pt-portions.met { color: var(--veggie); }
-  .pt-portions.over { color: var(--protein); }
+  .pt-kcal {
+    grid-area: kcal;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.35;
+    white-space: nowrap;
+  }
 
   /* ── Quick-add shortcuts ── */
   .quick-add-section {
