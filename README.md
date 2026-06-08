@@ -140,6 +140,9 @@ counts. Import replaces all local data (two-tap confirm).
 Destructive actions (clear day, reset everything, import) use tap-once-to-arm,
 tap-again-to-confirm — no browser `confirm()` dialogs.
 
+On mobile Safari, double-tap and pinch zoom are disabled so quick successive
+taps (including confirm actions) do not zoom the page.
+
 ## Architecture
 
 Vanilla HTML/CSS/JS — no build step, no framework. Single-page app with three

@@ -1970,6 +1970,11 @@ function registerServiceWorker() {
 const versionEl = document.getElementById('app-version');
 if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
 
+// iOS Safari: block pinch-zoom gestures (viewport meta covers most cases; this is a WebKit fallback).
+['gesturestart', 'gesturechange', 'gestureend'].forEach((type) => {
+  document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+});
+
 document.addEventListener('click', handleAppClick);
 
 const importBackupInput = document.getElementById('import-backup-input');
