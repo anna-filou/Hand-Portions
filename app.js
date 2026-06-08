@@ -37,6 +37,8 @@ const DYNAMIC_CUT_ORDER = ['fat', 'protein', 'carb'];
 const HAND_SIZES = ['small', 'average', 'big'];
 let setupWizardOpen = false;
 const historyExpandedDays = new Set();
+let todayViewDate = startOfDay(new Date());
+let logTargetDay = startOfDay(new Date());
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -235,7 +237,10 @@ function syncUIAfterStateChange() {
 /* ══════════════════════════════════════════
    TABS
 ══════════════════════════════════════════ */
-function switchTab(tab) {
+function switchTab(tab, options) {
+  options = options || {};
+  const wasOnToday = isSectionActive('section-today');
+
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('section-' + tab).classList.add('active');
@@ -249,9 +254,16 @@ function switchTab(tab) {
   }
   if (tab !== 'today') disarmDeleteAllMeals();
 
-  if (tab === 'today') renderToday();
+  if (tab === 'today') {
+    if (options.resetToToday) todayViewDate = getActualToday();
+    disarmDeleteAllMeals();
+    renderToday();
+  }
   if (tab === 'history') renderHistory();
-  if (tab === 'log') updateLogUI();
+  if (tab === 'log') {
+    logTargetDay = wasOnToday ? startOfDay(todayViewDate) : getActualToday();
+    updateLogUI();
+  }
   if (tab === 'setup') updateSetupUI();
 }
 
@@ -269,7 +281,7 @@ function handleAppClick(event) {
 
   const tabButton = event.target.closest('[data-tab]');
   if (tabButton) {
-    switchTab(tabButton.dataset.tab);
+    switchTab(tabButton.dataset.tab, { resetToToday: tabButton.dataset.tab === 'today' });
     return;
   }
 
@@ -364,6 +376,8 @@ function runAction(action) {
     'log-meal': logMeal,
     'reset-counts': resetCounts,
     'reset-day': handleResetDay,
+    'today-prev-day': goToPreviousDay,
+    'today-next-day': goToNextDay,
     'reset-everything': handleResetEverything,
     'export-backup': exportBackup,
     'import-backup': handleImportBackup,
@@ -465,7 +479,7 @@ function calculateTarget() {
   setupWizardOpen = false;
   updateSetupUI();
 
-  switchTab('today');
+  switchTab('today', { resetToToday: true });
   renderToday();
 }
 
@@ -693,6 +707,14 @@ function resetCounts() {
   saveState();
 }
 
+function getMealTimestampForLogDay() {
+  const day = logTargetDay || getActualToday();
+  const now = new Date();
+  const target = new Date(day);
+  target.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  return target.getTime();
+}
+
 function logMeal() {
   const total = state.counts.protein + state.counts.veggie + state.counts.carb + state.counts.fat;
   if (total === 0) return;
@@ -705,7 +727,7 @@ function logMeal() {
     + state.counts.fat * p.fat;
 
   const meal = {
-    timestamp: Date.now(),
+    timestamp: getMealTimestampForLogDay(),
     portions: { ...state.counts },
     kcal,
     macroG: {
@@ -719,6 +741,7 @@ function logMeal() {
   state.meals.push(meal);
   saveState();
   resetCounts();
+  todayViewDate = startOfDay(logTargetDay || getActualToday());
   switchTab('today');
 }
 
@@ -813,6 +836,41 @@ const PORTION_ROW_META = [
 
 function formatDateLabel(date) {
   return `${DAY_NAMES[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function startOfDay(date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function getActualToday() {
+  return startOfDay(new Date());
+}
+
+function isSameDay(a, b) {
+  return startOfDay(a).toDateString() === startOfDay(b).toDateString();
+}
+
+function getTodayViewDayStr() {
+  return todayViewDate.toDateString();
+}
+
+function goToPreviousDay() {
+  disarmDeleteAllMeals();
+  const next = new Date(todayViewDate);
+  next.setDate(next.getDate() - 1);
+  todayViewDate = startOfDay(next);
+  renderToday();
+}
+
+function goToNextDay() {
+  if (isSameDay(todayViewDate, getActualToday())) return;
+  disarmDeleteAllMeals();
+  const next = new Date(todayViewDate);
+  next.setDate(next.getDate() + 1);
+  todayViewDate = startOfDay(next);
+  renderToday();
 }
 
 function formatShortDate(date) {
@@ -1141,18 +1199,24 @@ function renderToday() {
   noTarget.style.display = 'none';
   content.style.display = 'block';
 
-  const now = new Date();
-  document.getElementById('today-date-str').textContent = formatDateLabel(now);
-  document.getElementById('today-day-str').textContent = 'Today';
+  const actualToday = getActualToday();
+  const isViewingToday = isSameDay(todayViewDate, actualToday);
+  const dayStr = getTodayViewDayStr();
+  document.getElementById('today-date-str').textContent = formatDateLabel(todayViewDate);
+  const dayStrEl = document.getElementById('today-day-str');
+  dayStrEl.textContent = 'Today';
+  dayStrEl.hidden = !isViewingToday;
 
-  const todayStr = now.toDateString();
-  const todayMeals = getMealsForDay(todayStr);
-  const totals = sumMealTotals(todayMeals);
+  const nextDayBtn = document.getElementById('today-next-day');
+  if (nextDayBtn) nextDayBtn.disabled = isViewingToday;
+
+  const dayMeals = getMealsForDay(dayStr);
+  const totals = sumMealTotals(dayMeals);
   const totalKcal = totals.kcal;
   const p = state.portions[state.handSize];
   const kcalByType = { protein: 0, veggie: 0, carb: 0, fat: 0 };
 
-  todayMeals.forEach(function(m) {
+  dayMeals.forEach(function(m) {
     PORTION_TYPES.forEach(function(k) {
       kcalByType[k] += m.portions[k] * p[k];
     });
@@ -1199,15 +1263,15 @@ function renderToday() {
     fat: totals.fat
   });
   renderPortionCards(document.getElementById('portion-targets'), totals, goals);
-  renderMealList(document.getElementById('meal-list'), todayMeals, {
+  renderMealList(document.getElementById('meal-list'), dayMeals, {
     deletable: true,
-    emptyMessage: 'No meals logged yet today.',
+    emptyMessage: isViewingToday ? 'No meals logged yet today.' : 'No meals logged on this day.',
     logMealTab: true
   });
 
   const resetWrap = document.getElementById('today-reset-wrap');
   if (resetWrap) {
-    if (todayMeals.length === 0) {
+    if (dayMeals.length === 0) {
       disarmDeleteAllMeals();
       resetWrap.hidden = true;
     } else {
@@ -1302,16 +1366,15 @@ function renderHistory() {
 }
 
 function deleteMeal(index) {
-  // Find actual index in state.meals for today
-  const todayStr = new Date().toDateString();
-  const todayMeals = state.meals.filter(m => new Date(m.timestamp).toDateString() === todayStr);
-  const toDelete = todayMeals[index];
+  const dayStr = getTodayViewDayStr();
+  const dayMeals = getMealsForDay(dayStr);
+  const toDelete = dayMeals[index];
   state.meals = state.meals.filter(m => m !== toDelete);
   saveState();
   refreshDayViews();
 }
 
-const DELETE_ALL_MEALS_LABEL = 'Delete all meals';
+const DELETE_ALL_MEALS_LABEL = 'Clear all';
 const DELETE_ALL_MEALS_CONFIRM_LABEL = 'Are you sure?';
 let deleteAllMealsArmed = false;
 
@@ -1338,8 +1401,8 @@ function handleResetDay() {
 
 function performResetDay() {
   disarmDeleteAllMeals();
-  const todayStr = new Date().toDateString();
-  state.meals = state.meals.filter(m => new Date(m.timestamp).toDateString() !== todayStr);
+  const dayStr = getTodayViewDayStr();
+  state.meals = state.meals.filter(m => new Date(m.timestamp).toDateString() !== dayStr);
   saveState();
   refreshDayViews();
 }
@@ -1576,7 +1639,7 @@ function performImportBackup() {
   disarmImportBackup();
   saveState();
   syncUIAfterStateChange();
-  switchTab('today');
+  switchTab('today', { resetToToday: true });
 }
 
 /* ══════════════════════════════════════════
@@ -1805,7 +1868,7 @@ if (state.goalMult) {
 
 // If target already exists, go to today — otherwise settings
 if (state.target) {
-  switchTab('today');
+  switchTab('today', { resetToToday: true });
 } else {
   switchTab('setup');
 }

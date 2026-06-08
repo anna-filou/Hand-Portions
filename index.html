@@ -451,10 +451,12 @@
 
     <div id="today-content">
       <div class="date-header">
-        <div>
+        <button type="button" class="date-nav-btn" id="today-prev-day" data-action="today-prev-day" aria-label="Previous day">‹</button>
+        <div class="date-header-main">
           <div class="date-today" id="today-date-str"></div>
-          <div class="date-str" id="today-day-str"></div>
+          <div class="date-str" id="today-day-str">Today</div>
         </div>
+        <button type="button" class="date-nav-btn" id="today-next-day" data-action="today-next-day" aria-label="Next day">›</button>
       </div>
 
       <div class="progress-wrap">
@@ -491,7 +493,7 @@
           </div>
         </div>
         <div class="today-reset-wrap" id="today-reset-wrap" hidden>
-          <button type="button" class="btn-link" id="delete-all-meals-btn" data-action="reset-day">Delete all meals</button>
+          <button type="button" class="btn-link" id="delete-all-meals-btn" data-action="reset-day">Clear all</button>
         </div>
       </div>
     </div>

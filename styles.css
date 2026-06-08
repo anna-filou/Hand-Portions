@@ -849,9 +849,43 @@
   /* ── Date header ── */
   .date-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     margin-bottom: 20px;
+  }
+
+  .date-header-main {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .date-nav-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+
+  .date-nav-btn:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--text-dim);
+    background: var(--surface2);
+  }
+
+  .date-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 
   .date-str {
