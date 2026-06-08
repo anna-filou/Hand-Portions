@@ -108,6 +108,12 @@ For the selected day, Today shows:
 Use the day arrows to review earlier days; “Clear all” removes every meal on
 that day (two-tap confirm).
 
+### Day end time
+
+In Settings you can choose when your tracking day rolls over (default:
+**2:00 AM**). Meals logged before that time still count toward the previous
+day — useful if you eat late and consider that part of the same day.
+
 ### Dynamic budgets (optional)
 
 When enabled in Settings, overshooting one portion type shrinks the remaining
@@ -134,8 +140,8 @@ offline. Meal data is already local, so logging works without a network once
 the app is installed or cached.
 
 **Backup & restore** exports/import a JSON file with meals, budget, targets,
-hand size, goal, body stats, dynamic-budget setting, and in-progress log
-counts. Import replaces all local data (two-tap confirm).
+hand size, goal, body stats, dynamic-budget setting, day end time, and
+in-progress log counts. Import replaces all local data (two-tap confirm).
 
 Destructive actions (clear day, reset everything, import) use tap-once-to-arm,
 tap-again-to-confirm — no browser `confirm()` dialogs.

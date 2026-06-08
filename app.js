@@ -26,7 +26,8 @@ let state = {
     activity: '1.55'
   },
   dynamicRecalc: false,
-  targetHistory: []
+  targetHistory: [],
+  dayEndHour: 2
 };
 
 const STORAGE_KEY = 'handful-state-v1';
@@ -80,13 +81,13 @@ function cleanTargetHistory(history) {
 }
 
 function getFirstTrackDayStr() {
-  if (state.meals.length === 0) return new Date().toDateString();
+  if (state.meals.length === 0) return getActualToday().toDateString();
 
   let earliest = state.meals[0].timestamp;
   state.meals.forEach(function(meal) {
     if (meal.timestamp < earliest) earliest = meal.timestamp;
   });
-  return new Date(earliest).toDateString();
+  return getLogicalDayStr(new Date(earliest));
 }
 
 function migrateTargetHistory() {
@@ -106,7 +107,7 @@ function recordTargetForToday() {
   const kcal = budgetTotalKcal();
   if (kcal <= 0) return;
 
-  const dayStr = new Date().toDateString();
+  const dayStr = getActualToday().toDateString();
   const last = state.targetHistory[state.targetHistory.length - 1];
 
   if (last && last.dayStr === dayStr) {
@@ -144,7 +145,8 @@ function getPersistentState() {
     weight: state.weight,
     profile: state.profile,
     dynamicRecalc: state.dynamicRecalc,
-    targetHistory: state.targetHistory
+    targetHistory: state.targetHistory,
+    dayEndHour: state.dayEndHour
   };
 }
 
@@ -177,7 +179,8 @@ function normalizeSavedState(rawState) {
       ...(isObject(data.profile) ? data.profile : {})
     },
     dynamicRecalc: data.dynamicRecalc === true,
-    targetHistory: cleanTargetHistory(data.targetHistory)
+    targetHistory: cleanTargetHistory(data.targetHistory),
+    dayEndHour: normalizeDayEndHour(data.dayEndHour)
   };
 }
 
@@ -226,6 +229,7 @@ function syncUIAfterStateChange() {
   document.querySelectorAll('[data-dynamic-recalc]').forEach(function(el) {
     el.classList.toggle('selected', el.dataset.dynamicRecalc === String(state.dynamicRecalc));
   });
+  restoreDayEndUI();
 
   restoreProfileUI();
   restoreCountUI();
@@ -562,6 +566,24 @@ function calcEffectiveBudget(logged) {
   return effective;
 }
 
+function setDayEndHour(hour) {
+  const nextHour = normalizeDayEndHour(hour);
+  if (state.dayEndHour === nextHour) return;
+
+  state.dayEndHour = nextHour;
+  saveState();
+  todayViewDate = getActualToday();
+  logTargetDay = getActualToday();
+  refreshDayViews();
+  updateLogUI();
+}
+
+function restoreDayEndUI() {
+  const select = document.getElementById('day-end-hour');
+  if (!select) return;
+  select.value = String(getDayEndHour());
+}
+
 function setDynamicRecalc(enabled) {
   state.dynamicRecalc = enabled;
   saveState();
@@ -878,12 +900,39 @@ function startOfDay(date) {
   return next;
 }
 
+function normalizeDayEndHour(value) {
+  const hour = Number(value);
+  return Number.isFinite(hour) && hour >= 0 && hour <= 23 ? Math.floor(hour) : 0;
+}
+
+function getDayEndHour() {
+  return normalizeDayEndHour(state.dayEndHour);
+}
+
+function getLogicalDayStart(date) {
+  const d = new Date(date);
+  const endHour = getDayEndHour();
+  if (endHour === 0) return startOfDay(d);
+
+  if (d.getHours() < endHour) {
+    const prev = new Date(d);
+    prev.setDate(prev.getDate() - 1);
+    prev.setHours(0, 0, 0, 0);
+    return prev;
+  }
+  return startOfDay(d);
+}
+
+function getLogicalDayStr(date) {
+  return getLogicalDayStart(date).toDateString();
+}
+
 function getActualToday() {
-  return startOfDay(new Date());
+  return getLogicalDayStart(new Date());
 }
 
 function isSameDay(a, b) {
-  return startOfDay(a).toDateString() === startOfDay(b).toDateString();
+  return getLogicalDayStr(a) === getLogicalDayStr(b);
 }
 
 function getTodayViewDayStr() {
@@ -912,7 +961,7 @@ function formatShortDate(date) {
 }
 
 function getMealsForDay(dayStr) {
-  return state.meals.filter(m => new Date(m.timestamp).toDateString() === dayStr);
+  return state.meals.filter(m => getLogicalDayStr(new Date(m.timestamp)) === dayStr);
 }
 
 function sumMealTotals(meals) {
@@ -928,12 +977,11 @@ function sumMealTotals(meals) {
 
 function getRollingWeekDays() {
   const days = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getActualToday();
   for (let i = 6; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    days.push(date);
+    days.push(startOfDay(date));
   }
   return days;
 }
@@ -987,7 +1035,7 @@ function getRollingWeekDayEntries() {
 }
 
 function getRollingWeekAverageKcal(dayEntries) {
-  const todayStr = new Date().toDateString();
+  const todayStr = getActualToday().toDateString();
   const loggedDays = dayEntries.filter(function(entry) {
     return entry.dayStr !== todayStr && entry.data.totalKcal > 0;
   });
@@ -1018,7 +1066,7 @@ function renderHistoryChart() {
   const chart = document.getElementById('history-chart');
   if (!chart) return;
 
-  const todayStr = new Date().toDateString();
+  const todayStr = getActualToday().toDateString();
   const dayEntries = getRollingWeekDayEntries();
   const labels = [];
 
@@ -1101,7 +1149,7 @@ function renderHistoryChart() {
 function groupMealsByDay() {
   const groups = new Map();
   state.meals.forEach(function(meal) {
-    const dayStr = new Date(meal.timestamp).toDateString();
+    const dayStr = getLogicalDayStr(new Date(meal.timestamp));
     if (!groups.has(dayStr)) groups.set(dayStr, []);
     groups.get(dayStr).push(meal);
   });
@@ -1516,7 +1564,7 @@ function handleDeleteHistoryDay(dayStr) {
 }
 
 function deleteMealsForDay(dayStr) {
-  state.meals = state.meals.filter(m => new Date(m.timestamp).toDateString() !== dayStr);
+  state.meals = state.meals.filter(m => getLogicalDayStr(new Date(m.timestamp)) !== dayStr);
   saveState();
   refreshDayViews();
 }
@@ -1571,6 +1619,7 @@ function performResetEverything() {
   };
   state.dynamicRecalc = false;
   state.targetHistory = [];
+  state.dayEndHour = 2;
   delete state.weight;
 
   historyExpandedDays.clear();
@@ -1594,6 +1643,7 @@ function performResetEverything() {
 
   restoreProfileUI();
   restoreCountUI();
+  restoreDayEndUI();
   updateSetupUI();
   switchTab('setup');
 }
@@ -1982,10 +2032,18 @@ if (importBackupInput) {
   importBackupInput.addEventListener('change', handleImportBackupFile);
 }
 
+const dayEndHourSelect = document.getElementById('day-end-hour');
+if (dayEndHourSelect) {
+  dayEndHourSelect.addEventListener('change', function() {
+    setDayEndHour(dayEndHourSelect.value);
+  });
+}
+
 loadState();
 ensureBudget();
 restoreProfileUI();
 restoreCountUI();
+restoreDayEndUI();
 updateSetupUI();
 
 // Restore hand size UI

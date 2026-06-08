@@ -165,6 +165,28 @@
       </div>
     </section>
 
+    <section class="setup-panel" id="setup-panel-day-end">
+      <button class="setup-panel-toggle" type="button" data-setup-panel="day-end" aria-expanded="false" aria-controls="setup-day-end-body">
+        <span class="setup-panel-title"><span>🌙</span> Day end time</span>
+        <span class="setup-panel-chevron" aria-hidden="true"></span>
+      </button>
+      <div class="setup-panel-body" id="setup-day-end-body">
+        <div class="field">
+          <label for="day-end-hour">When does your day roll over?</label>
+          <select id="day-end-hour">
+            <option value="0">Midnight (12:00 AM)</option>
+            <option value="1">1:00 AM</option>
+            <option value="2" selected>2:00 AM</option>
+            <option value="3">3:00 AM</option>
+            <option value="4">4:00 AM</option>
+            <option value="5">5:00 AM</option>
+            <option value="6">6:00 AM</option>
+          </select>
+        </div>
+        <p class="setup-recalc-hint">Meals logged before this time still count toward the previous day. For example, with <strong>4:00 AM</strong> selected, a snack at 2:00 AM stays on yesterday’s totals until 4:00 AM.</p>
+      </div>
+    </section>
+
     <section class="setup-panel" id="setup-panel-calculator">
       <button class="setup-panel-toggle" type="button" data-setup-panel="calculator" aria-expanded="false" aria-controls="setup-calculator-body">
         <span class="setup-panel-title"><span>🧮</span> Body stats calculator</span>
@@ -260,7 +282,7 @@
         <span class="setup-panel-chevron" aria-hidden="true"></span>
       </button>
       <div class="setup-panel-body" id="setup-backup-body">
-        <p class="setup-recalc-hint">Backs up and restores your meal history, daily portion budget, calorie targets (including target history), hand size, goal, body stats, dynamic budget setting, and today’s in-progress log counts. Import replaces all of that on this device.</p>
+        <p class="setup-recalc-hint">Backs up and restores your meal history, daily portion budget, calorie targets (including target history), hand size, goal, body stats, dynamic budget setting, day end time, and today’s in-progress log counts. Import replaces all of that on this device.</p>
         <div class="setup-backup-actions">
           <button type="button" class="btn btn-ghost setup-reset-btn" data-action="export-backup">Export backup</button>
           <button type="button" id="import-backup-btn" class="btn btn-ghost setup-reset-btn" data-action="import-backup">Import backup</button>
