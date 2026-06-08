@@ -313,7 +313,7 @@
   .progress-total { color: var(--text-dim); }
 
   .progress-bar {
-    height: 10px;
+    height: 24px;
     background: var(--border);
     border-radius: 99px;
     overflow: hidden;
@@ -335,10 +335,11 @@
     transition: width 0.4s ease;
   }
 
-  .progress-seg.protein { background: #7ab0c9; }
-  .progress-seg.veggie { background: var(--veggie); }
-  .progress-seg.carb { background: #e8a06a; }
-  .progress-seg.fat { background: var(--fat); }
+  /* Same hues as portion labels, higher saturation for segment contrast */
+  .progress-seg.protein { background: #3eb0e8; }
+  .progress-seg.veggie { background: #3dd63d; }
+  .progress-seg.carb { background: #ff9638; }
+  .progress-seg.fat { background: #e8c840; }
 
   .progress-bar.over { box-shadow: 0 0 0 1px #c97a7a; }
 
