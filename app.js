@@ -38,6 +38,7 @@ const DYNAMIC_CUT_ORDER = ['fat', 'protein', 'carb'];
 const HAND_SIZES = ['small', 'average', 'big'];
 let setupWizardOpen = false;
 const historyExpandedDays = new Set();
+let historyWeekOffset = 0;
 let todayViewDate = startOfDay(new Date());
 let logTargetDay = startOfDay(new Date());
 
@@ -389,6 +390,8 @@ function runAction(action) {
     'reset-day': handleResetDay,
     'today-prev-day': goToPreviousDay,
     'today-next-day': goToNextDay,
+    'history-prev-week': goToPreviousHistoryWeek,
+    'history-next-week': goToNextHistoryWeek,
     'reset-everything': handleResetEverything,
     'export-backup': exportBackup,
     'import-backup': handleImportBackup,
@@ -765,11 +768,26 @@ function resetCounts() {
   saveState();
 }
 
+function getSafeHourForLogicalDay(day) {
+  const endHour = getDayEndHour();
+  if (endHour === 0) return 12;
+  return Math.max(endHour, 12);
+}
+
 function getMealTimestampForLogDay() {
-  const day = logTargetDay || getActualToday();
+  const day = startOfDay(logTargetDay || getActualToday());
   const now = new Date();
+
+  if (isSameDay(day, getActualToday())) {
+    return now.getTime();
+  }
+
+  // Past days: don't use the current clock time — before the day-end hour it would
+  // land on the previous logical day (e.g. Jun 1 at 1:30 AM → May 31 with a 2 AM cutoff).
   const target = new Date(day);
-  target.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  const dayStr = day.toDateString();
+  const mealsOnDay = getMealsForDay(dayStr).length;
+  target.setHours(getSafeHourForLogicalDay(day), Math.min(mealsOnDay, 59), 0, 0);
   return target.getTime();
 }
 
@@ -975,15 +993,50 @@ function sumMealTotals(meals) {
   return totals;
 }
 
-function getRollingWeekDays() {
+function getRollingWeekDays(weekOffset) {
+  const offset = typeof weekOffset === 'number' ? weekOffset : 0;
   const days = [];
-  const today = getActualToday();
+  const endDate = new Date(getActualToday());
+  endDate.setDate(endDate.getDate() + offset * 7);
   for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
+    const date = new Date(endDate);
     date.setDate(date.getDate() - i);
     days.push(startOfDay(date));
   }
   return days;
+}
+
+function formatHistoryWeekRange(days) {
+  const start = days[0];
+  const end = days[days.length - 1];
+  const startYear = start.getFullYear();
+  const endYear = end.getFullYear();
+  const startStr = start.getDate() + ' ' + MONTH_NAMES[start.getMonth()];
+  const endStr = end.getDate() + ' ' + MONTH_NAMES[end.getMonth()];
+
+  if (startYear === endYear) {
+    return startStr + ' – ' + endStr + ' ' + startYear;
+  }
+  return startStr + ' ' + startYear + ' – ' + endStr + ' ' + endYear;
+}
+
+function goToPreviousHistoryWeek() {
+  historyWeekOffset -= 1;
+  renderHistory();
+}
+
+function goToNextHistoryWeek() {
+  if (historyWeekOffset >= 0) return;
+  historyWeekOffset += 1;
+  renderHistory();
+}
+
+function updateHistoryWeekNav(days) {
+  const rangeEl = document.getElementById('history-week-range');
+  const prevBtn = document.getElementById('history-prev-week');
+  const nextBtn = document.getElementById('history-next-week');
+  if (rangeEl) rangeEl.textContent = formatHistoryWeekRange(days);
+  if (nextBtn) nextBtn.disabled = historyWeekOffset >= 0;
 }
 
 function getDayKcalByType(meals) {
@@ -999,11 +1052,21 @@ function getDayKcalByType(meals) {
 
 function getHistoryDayData(meals) {
   const kcalByType = getDayKcalByType(meals);
+  const totals = sumMealTotals(meals);
   const totalKcal = PORTION_TYPES.reduce(function(sum, type) {
     return sum + kcalByType[type];
   }, 0);
 
-  return { kcalByType: kcalByType, totalKcal: totalKcal };
+  return {
+    kcalByType: kcalByType,
+    totalKcal: totalKcal,
+    portions: {
+      protein: totals.protein,
+      veggie: totals.veggie,
+      carb: totals.carb,
+      fat: totals.fat
+    }
+  };
 }
 
 function getHistoryChartScaleMax(dayEntries) {
@@ -1021,8 +1084,8 @@ function kcalToBarPct(kcal, scaleMax) {
   return (kcal / scaleMax) * 100;
 }
 
-function getRollingWeekDayEntries() {
-  return getRollingWeekDays().map(function(date) {
+function getHistoryWeekDayEntries(weekOffset) {
+  return getRollingWeekDays(weekOffset).map(function(date) {
     const dayStr = date.toDateString();
     const meals = getMealsForDay(dayStr);
     return {
@@ -1034,32 +1097,83 @@ function getRollingWeekDayEntries() {
   });
 }
 
-function getRollingWeekAverageKcal(dayEntries) {
-  const todayStr = getActualToday().toDateString();
+function getRollingWeekDayEntries() {
+  return getHistoryWeekDayEntries(historyWeekOffset);
+}
+
+function getHistoryWeekAverages(weekOffset) {
+  const dayEntries = getHistoryWeekDayEntries(weekOffset);
   const loggedDays = dayEntries.filter(function(entry) {
-    return entry.dayStr !== todayStr && entry.data.totalKcal > 0;
+    return entry.data.totalKcal > 0;
   });
   if (loggedDays.length === 0) return null;
 
-  const totalKcal = loggedDays.reduce(function(sum, entry) {
-    return sum + entry.data.totalKcal;
-  }, 0);
-  return Math.round(totalKcal / loggedDays.length);
+  const totals = { protein: 0, veggie: 0, carb: 0, fat: 0, kcal: 0 };
+  loggedDays.forEach(function(entry) {
+    totals.kcal += entry.data.totalKcal;
+    PORTION_TYPES.forEach(function(type) {
+      totals[type] += entry.data.portions[type];
+    });
+  });
+
+  const count = loggedDays.length;
+  return {
+    kcal: Math.round(totals.kcal / count),
+    portions: {
+      protein: totals.protein / count,
+      veggie: totals.veggie / count,
+      carb: totals.carb / count,
+      fat: totals.fat / count
+    }
+  };
 }
 
-function updateHistoryWeekAverage(dayEntries) {
-  const wrap = document.getElementById('history-week-avg');
-  const valueEl = document.getElementById('history-week-avg-value');
-  if (!wrap || !valueEl) return;
+function formatAvgPortion(value) {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
 
-  const avg = getRollingWeekAverageKcal(dayEntries);
-  if (avg === null) {
+function renderHistoryAvgRow(container, averages) {
+  container.innerHTML = '';
+  const labels = [];
+
+  PORTION_ROW_META.forEach(function(row) {
+    const avg = averages.portions[row.key] || 0;
+    const formatted = formatAvgPortion(avg);
+    const item = document.createElement('span');
+    item.className = 'history-pt ' + row.key;
+    item.innerHTML =
+      '<span class="history-pt-icon" aria-hidden="true">' + row.icon + '</span>' +
+      '<span class="history-pt-avg">' + formatted + '</span>';
+    labels.push(row.label + ': ' + formatted + ' avg');
+    container.appendChild(item);
+  });
+
+  const kcalItem = document.createElement('span');
+  kcalItem.className = 'history-kcal';
+  kcalItem.innerHTML = '<span class="history-kcal-frac">' + averages.kcal + ' kcal</span>';
+  labels.push('Calories: ' + averages.kcal + ' kcal average');
+  container.appendChild(kcalItem);
+
+  container.setAttribute('aria-label', labels.join(', '));
+}
+
+function updateHistoryWeekAverage(weekOffset) {
+  const wrap = document.getElementById('history-week-avg');
+  const rowEl = document.getElementById('history-week-avg-row');
+  const labelEl = wrap && wrap.querySelector('.history-week-avg-label');
+  if (!wrap || !rowEl) return;
+
+  const averages = getHistoryWeekAverages(weekOffset);
+  if (averages === null) {
+    rowEl.innerHTML = '';
     wrap.hidden = true;
     return;
   }
 
   wrap.hidden = false;
-  valueEl.textContent = avg + ' kcal/day';
+  if (labelEl) labelEl.textContent = 'Weekly average';
+  renderHistoryAvgRow(rowEl, averages);
 }
 
 function renderHistoryChart() {
@@ -1067,10 +1181,11 @@ function renderHistoryChart() {
   if (!chart) return;
 
   const todayStr = getActualToday().toDateString();
-  const dayEntries = getRollingWeekDayEntries();
+  const dayEntries = getHistoryWeekDayEntries(historyWeekOffset);
   const labels = [];
 
-  updateHistoryWeekAverage(dayEntries);
+  updateHistoryWeekNav(dayEntries.map(function(entry) { return entry.date; }));
+  updateHistoryWeekAverage(historyWeekOffset);
 
   const scaleMax = getHistoryChartScaleMax(dayEntries);
 
@@ -1143,7 +1258,11 @@ function renderHistoryChart() {
   });
 
   chart.appendChild(row);
-  chart.setAttribute('aria-label', 'Last 7 days calorie intake. ' + labels.join('. '));
+  chart.setAttribute(
+    'aria-label',
+    'Calorie intake for ' + formatHistoryWeekRange(dayEntries.map(function(entry) { return entry.date; })) +
+      '. ' + labels.join('. ')
+  );
 }
 
 function groupMealsByDay() {
@@ -1426,12 +1545,19 @@ function renderHistory() {
 
   renderHistoryChart();
 
-  const dayGroups = groupMealsByDay();
+  const weekDayStrs = new Set(
+    getHistoryWeekDayEntries(historyWeekOffset).map(function(entry) { return entry.dayStr; })
+  );
+  const dayGroups = groupMealsByDay().filter(function(group) {
+    return weekDayStrs.has(group.dayStr);
+  });
 
   list.innerHTML = '';
   if (dayGroups.length === 0) {
     list.innerHTML =
-      '<div class="empty-state"><div class="icon">📅</div><div>No meals logged yet.</div></div>';
+      '<div class="empty-state"><div class="icon">📅</div><div>' +
+      (historyWeekOffset === 0 ? 'No meals logged yet.' : 'No meals logged this week.') +
+      '</div></div>';
     return;
   }
 

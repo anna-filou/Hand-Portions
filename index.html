@@ -376,9 +376,16 @@
     </div>
 
     <div id="history-content">
+      <div class="date-header history-week-header">
+        <button type="button" class="date-nav-btn" id="history-prev-week" data-action="history-prev-week" aria-label="Previous week">‹</button>
+        <div class="date-header-main">
+          <div class="date-today" id="history-week-range"></div>
+        </div>
+        <button type="button" class="date-nav-btn" id="history-next-week" data-action="history-next-week" aria-label="Next week">›</button>
+      </div>
       <div id="history-week-avg" class="history-week-avg" hidden>
-        <span class="history-week-avg-label">Average, excluding today</span>
-        <span class="history-week-avg-value" id="history-week-avg-value"></span>
+        <div class="history-week-avg-label">Weekly average</div>
+        <div id="history-week-avg-row" class="history-portions"></div>
       </div>
       <div id="history-chart" class="history-chart" aria-hidden="true"></div>
       <div id="history-list"></div>

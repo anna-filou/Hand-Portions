@@ -40,8 +40,9 @@ flowchart LR
 2. **Today** — See calories and portion progress for the current day (or browse
    previous days). Tap **Log meal** to open the logging modal, delete individual
    meals, or clear a whole day.
-3. **History** — Rolling 7-day calorie chart plus an expandable list of past
-   days with portion totals.
+3. **History** — Browse weeks with prev/next arrows. Each week shows a 7-day
+   calorie chart, average portion counts and calories, plus an expandable list
+   of days with portion totals.
 
 On first launch you land in **Settings** until a target exists; returning users
 with saved data open **Today**.

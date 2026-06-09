@@ -985,11 +985,18 @@
   }
 
   /* ── History ── */
+  .history-week-header {
+    margin-bottom: 16px;
+  }
+
+  .history-week-header .date-today {
+    font-size: 17px;
+  }
+
   .history-week-avg {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    flex-direction: column;
+    gap: 10px;
     margin-bottom: 20px;
   }
 
@@ -998,12 +1005,9 @@
     color: var(--text-dim);
   }
 
-  .history-week-avg-value {
-    font-family: 'DM Mono', monospace;
-    font-size: 16px;
-    color: var(--accent);
-    font-weight: 500;
-    flex-shrink: 0;
+  .history-pt-avg {
+    font-weight: 700;
+    color: var(--text);
   }
 
   #history-content .empty-state {
