@@ -100,7 +100,8 @@ In-progress counts in the log modal persist in local storage so you can close
 the modal or switch tabs without losing a half-filled meal.
 
 **Shortcuts** in the log modal pre-fill common combos — processed snack (+1 carb +1
-fat), soda/juice (+1 carb), and popups for light/heavy drinks and dairy.
+fat), cheesecake (+1 carb +2 fat), soda/juice (+1 carb), and popups for
+light/heavy drinks and dairy.
 
 ### Today view
 
