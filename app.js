@@ -458,6 +458,7 @@ function runAction(action) {
     'close-setup-wizard': closeSetupWizard,
     'calculate-target': calculateTarget,
     'quick-add-processed': quickAddProcessed,
+    'quick-add-cheesecake': quickAddCheesecake,
     'open-light-popup': openLightPopup,
     'open-heavy-popup': openHeavyPopup,
     'open-dairy-popup': openDairyPopup,
@@ -2073,6 +2074,13 @@ function bumpEl(id) {
 function quickAddProcessed() {
   changeCount('carb', 1);
   changeCount('fat', 1);
+  bumpEl('count-carb');
+  bumpEl('count-fat');
+}
+
+function quickAddCheesecake() {
+  changeCount('carb', 1);
+  changeCount('fat', 2);
   bumpEl('count-carb');
   bumpEl('count-fat');
 }
