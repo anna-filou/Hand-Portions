@@ -27,12 +27,13 @@ let state = {
   },
   dynamicRecalc: false,
   targetHistory: [],
+  budgetHistory: [],
   dayEndHour: 2
 };
 
 const STORAGE_KEY = 'handful-state-v1';
 const EXPORT_FORMAT = 'handful-backup';
-const EXPORT_FORMAT_VERSION = 1;
+const EXPORT_FORMAT_VERSION = 2;
 const PORTION_TYPES = ['protein', 'veggie', 'carb', 'fat'];
 const DYNAMIC_CUT_ORDER = ['fat', 'protein', 'carb'];
 const HAND_SIZES = ['small', 'average', 'big'];
@@ -52,6 +53,14 @@ function cleanCounts(counts) {
     nextCounts[type] = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
     return nextCounts;
   }, {});
+}
+
+function hasPortionBudget(budget) {
+  return !!budget && PORTION_TYPES.some((type) => budget[type] > 0);
+}
+
+function budgetsEqual(a, b) {
+  return PORTION_TYPES.every((type) => (a && a[type] || 0) === (b && b[type] || 0));
 }
 
 function cleanMeals(meals) {
@@ -78,6 +87,20 @@ function cleanTargetHistory(history) {
       return { dayStr: entry.dayStr, target: Math.round(Number(entry.target)) };
     })
     .filter(function(entry) { return entry.target > 0; })
+    .sort(function(a, b) { return new Date(a.dayStr) - new Date(b.dayStr); });
+}
+
+function cleanBudgetHistory(history) {
+  if (!Array.isArray(history)) return [];
+
+  return history
+    .filter(function(entry) {
+      return isObject(entry) && typeof entry.dayStr === 'string' && isObject(entry.budget);
+    })
+    .map(function(entry) {
+      return { dayStr: entry.dayStr, budget: cleanCounts(entry.budget) };
+    })
+    .filter(function(entry) { return hasPortionBudget(entry.budget); })
     .sort(function(a, b) { return new Date(a.dayStr) - new Date(b.dayStr); });
 }
 
@@ -120,6 +143,45 @@ function recordTargetForToday() {
   state.targetHistory.push({ dayStr: dayStr, target: kcal });
 }
 
+function migrateBudgetHistory() {
+  if (state.budgetHistory.length > 0 || !state.target) return;
+
+  ensureBudget();
+  const budget = cleanCounts(state.budget);
+  if (!hasPortionBudget(budget)) return;
+
+  state.budgetHistory = [{ dayStr: getFirstTrackDayStr(), budget: budget }];
+}
+
+function recordBudgetForToday() {
+  if (!state.target) return;
+
+  ensureBudget();
+  const budget = cleanCounts(state.budget);
+  if (!hasPortionBudget(budget)) return;
+
+  const dayStr = getActualToday().toDateString();
+  const last = state.budgetHistory[state.budgetHistory.length - 1];
+
+  if (last && last.dayStr === dayStr) {
+    if (budgetsEqual(last.budget, budget)) return;
+    last.budget = budget;
+    return;
+  }
+
+  state.budgetHistory.push({ dayStr: dayStr, budget: budget });
+}
+
+function recordSettingsForToday() {
+  recordTargetForToday();
+  recordBudgetForToday();
+}
+
+function migrateHistorySettings() {
+  migrateTargetHistory();
+  migrateBudgetHistory();
+}
+
 function getTargetForDay(dayStr) {
   if (state.targetHistory.length === 0) return null;
 
@@ -135,6 +197,21 @@ function getTargetForDay(dayStr) {
   return target;
 }
 
+function getBudgetForDay(dayStr) {
+  if (state.budgetHistory.length === 0) return null;
+
+  const firstDay = state.budgetHistory[0].dayStr;
+  if (new Date(dayStr) < new Date(firstDay)) return null;
+
+  let budget = null;
+  state.budgetHistory.forEach(function(entry) {
+    if (new Date(entry.dayStr) <= new Date(dayStr)) {
+      budget = entry.budget;
+    }
+  });
+  return budget ? cleanCounts(budget) : null;
+}
+
 function getPersistentState() {
   return {
     target: state.target,
@@ -147,6 +224,7 @@ function getPersistentState() {
     profile: state.profile,
     dynamicRecalc: state.dynamicRecalc,
     targetHistory: state.targetHistory,
+    budgetHistory: state.budgetHistory,
     dayEndHour: state.dayEndHour
   };
 }
@@ -181,6 +259,7 @@ function normalizeSavedState(rawState) {
     },
     dynamicRecalc: data.dynamicRecalc === true,
     targetHistory: cleanTargetHistory(data.targetHistory),
+    budgetHistory: cleanBudgetHistory(data.budgetHistory),
     dayEndHour: normalizeDayEndHour(data.dayEndHour)
   };
 }
@@ -198,7 +277,7 @@ function applyPersistentState(rawState) {
 
   if (normalized.weight === undefined) delete state.weight;
 
-  migrateTargetHistory();
+  migrateHistorySettings();
   return true;
 }
 
@@ -421,7 +500,7 @@ function selectHand(el) {
   updatePortionKcals();
   updateMealTotal();
   updateSetupUI();
-  recordTargetForToday();
+  recordSettingsForToday();
   saveState();
   refreshDayViews();
 }
@@ -488,7 +567,7 @@ function calculateTarget() {
     activity: String(activity)
   };
   state.budget = calcGoalPortions(weight, state.goalMult, state.target, state.handSize);
-  recordTargetForToday();
+  recordSettingsForToday();
   saveState();
   setupWizardOpen = false;
   updateSetupUI();
@@ -679,7 +758,7 @@ function changeBudget(type, delta) {
 
   state.budget[type] = Math.max(0, (state.budget[type] || 0) + delta);
   updateSetupUI();
-  recordTargetForToday();
+  recordSettingsForToday();
   saveState();
   refreshDayViews();
 }
@@ -1103,8 +1182,9 @@ function getRollingWeekDayEntries() {
 
 function getHistoryWeekAverages(weekOffset) {
   const dayEntries = getHistoryWeekDayEntries(weekOffset);
+  const todayStr = getActualToday().toDateString();
   const loggedDays = dayEntries.filter(function(entry) {
-    return entry.data.totalKcal > 0;
+    return entry.dayStr !== todayStr && entry.data.totalKcal > 0;
   });
   if (loggedDays.length === 0) return null;
 
@@ -1583,12 +1663,7 @@ function renderHistory() {
 
     const portionsRow = document.createElement('div');
     portionsRow.className = 'history-portions';
-    const goals = calcEffectiveBudget({
-      protein: totals.protein,
-      veggie: totals.veggie,
-      carb: totals.carb,
-      fat: totals.fat
-    });
+    const goals = getBudgetForDay(group.dayStr) || cleanCounts(state.budget);
     const dayTarget = getTargetForDay(group.dayStr);
     renderPortionRow(portionsRow, totals, goals, dayTarget ? {
       consumed: totals.kcal,
@@ -1745,6 +1820,7 @@ function performResetEverything() {
   };
   state.dynamicRecalc = false;
   state.targetHistory = [];
+  state.budgetHistory = [];
   state.dayEndHour = 2;
   delete state.weight;
 
@@ -1939,7 +2015,7 @@ function performImportBackup() {
 
   if (pendingImportPayload.weight === undefined) delete state.weight;
 
-  migrateTargetHistory();
+  migrateHistorySettings();
   historyExpandedDays.clear();
   setupWizardOpen = false;
 

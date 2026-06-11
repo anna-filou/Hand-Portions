@@ -41,8 +41,9 @@ flowchart LR
    previous days). Tap **Log meal** to open the logging modal, delete individual
    meals, or clear a whole day.
 3. **History** — Browse weeks with prev/next arrows. Each week shows a 7-day
-   calorie chart, average portion counts and calories, plus an expandable list
-   of days with portion totals.
+   calorie chart, average portion counts and calories excluding today, plus an
+   expandable list of days with portion totals vs that day’s saved Settings
+   budget.
 
 On first launch you land in **Settings** until a target exists; returning users
 with saved data open **Today**.
@@ -75,8 +76,9 @@ You can fine-tune the budget manually in Settings with +/− on each type. The
 **effective daily target** is always the kcal total of your current budget
 counts × hand-size values, not the raw calculator output alone.
 
-Changes to budget or hand size are recorded in **target history** so History
-can show the correct calorie goal for each past day.
+Changes to budget or hand size are recorded in **target history**, and budget
+count changes are recorded in **budget history**, so History can show the
+correct calorie goal and fixed portion goals for each past day.
 
 ### Logging a meal
 
@@ -124,8 +126,8 @@ targets for the day so the calorie total still fits:
 - If you’re already over daily calories, uneaten non-veggie targets drop to
   what you’ve already eaten
 
-This only affects display targets on Today/History — your stored budget in
-Settings stays unchanged.
+This only affects display targets on Today — your stored budget in Settings and
+saved History goals stay unchanged.
 
 ### Data & offline
 
@@ -140,9 +142,10 @@ The service worker caches the app shell on first load so Handful reopens
 offline. Meal data is already local, so logging works without a network once
 the app is installed or cached.
 
-**Backup & restore** exports/import a JSON file with meals, budget, targets,
-hand size, goal, body stats, dynamic-budget setting, day end time, and
-in-progress log counts. Import replaces all local data (two-tap confirm).
+**Backup & restore** exports/import a JSON file with meals, budget, target and
+budget history, hand size, goal, body stats, dynamic-budget setting, day end
+time, and in-progress log counts. Import replaces all local data (two-tap
+confirm).
 
 Destructive actions (clear day, reset everything, import) use tap-once-to-arm,
 tap-again-to-confirm — no browser `confirm()` dialogs.
