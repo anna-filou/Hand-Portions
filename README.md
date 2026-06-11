@@ -23,6 +23,10 @@ Each unit has a calorie estimate that depends on your **hand size** (small,
 medium, or big). Medium uses the midpoint of PN’s male/female ranges; small
 and big shift values down or up.
 
+Settings includes an expandable **How to use Hand Portions** guide with the
+portion shapes, special-case shortcuts, and a Precision Nutrition reference
+link.
+
 ### Setup → budget → log → review
 
 ```mermaid
